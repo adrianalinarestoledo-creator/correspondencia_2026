@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Crear usuario</h2>
+
+<form method="POST">
+
+    <div class="mb-3">
+        <label>Usuario</label>
+        <input type="text" name="usuario" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label>Contraseña</label>
+        <input type="password" name="password" class="form-control" required>
+        <p id="msgPwd" class="mt-2"></p>
+    </div>
+
+    <div class="mb-3">
+        <label>Rol</label>
+        <select name="rol" class="form-control">
+            <option value="admin">Admin</option>
+            <option value="gerencia">Gerencia</option>
+        </select>
+    </div>
+
+    <button class="btn btn-primary">Guardar</button>
+</form>
+
+<script>
+function validarPassword() {
+    const pwd = document.querySelector("input[name='password']");
+    const btn = document.querySelector("button[type='submit']");
+    const msg = document.getElementById("msgPwd");
+
+    const reglas = [
+        /.{8,}/,
+        /[A-Z]/,
+        /[a-z]/,
+        /[0-9]/,
+        /[^A-Za-z0-9]/
+    ];
+
+    let ok = reglas.every(r => r.test(pwd.value));
+
+    if (!ok) {
+        msg.innerHTML = "La contraseña debe tener: mínimo 8 caracteres, mayúscula, minúscula, número y símbolo.";
+        msg.style.color = "red";
+        btn.disabled = true;
+    } else {
+        msg.innerHTML = "Contraseña segura ✔";
+        msg.style.color = "green";
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const pwd = document.querySelector("input[name='password']");
+    if (pwd) pwd.addEventListener("input", validarPassword);
+});
+</script>
+{% endblock %}

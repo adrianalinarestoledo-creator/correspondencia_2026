@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block contenido %}
+
+<h3>Importar Excel</h3>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="archivo" class="form-control" required>
+    <button class="btn btn-primary mt-3">Cargar archivo</button>
+</form>
+
+{% endblock %}

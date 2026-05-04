@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block contenido %}
+
+<h3>➕ Registrar nuevo oficio</h3>
+
+<form method="POST" class="mt-4">
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <label>Número</label>
+            <input type="text" name="numero" class="form-control" required>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <label>Fecha</label>
+            <input type="date" name="fecha" class="form-control" required>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <label>Hora</label>
+            <input type="time" name="hora" class="form-control">
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label>Asunto</label>
+        <textarea name="asunto" class="form-control" required></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label>Gerencia turnada</label>
+        <input type="text" name="gerencia_turnada" class="form-control" required>
+    </div>
+
+    <div class="mb-3">
+        <label>Prioridad</label>
+        <select name="prioridad" class="form-control">
+            <option>Urgente</option>
+            <option>Alta</option>
+            <option>Media</option>
+            <option>Baja</option>
+            <option>No aplica</option>
+        </select>
+    </div>
+
+    <button class="btn btn-success">Guardar</button>
+
+</form>
+
+{% endblock %}

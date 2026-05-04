@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block contenido %}
+
+<h3>Vista previa del archivo</h3>
+
+<table class="table table-bordered table-sm">
+    <thead>
+        <tr>
+            {% for col in columnas %}
+            <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for fila in preview %}
+        <tr>
+            {% for col in columnas %}
+            <td>{{ fila[col] }}</td>
+            {% endfor %}
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<form method="POST" action="{{ url_for('confirmar_importacion') }}">
+    <button class="btn btn-success">Confirmar importación</button>
+</form>
+
+{% endblock %}

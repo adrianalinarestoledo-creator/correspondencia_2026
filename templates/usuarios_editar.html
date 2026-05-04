@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Editar usuario</h2>
+
+<form method="POST">
+
+    <div class="mb-3">
+        <label>Usuario</label>
+        <input type="text" value="{{ usuario.usuario }}" class="form-control" disabled>
+    </div>
+
+    <div class="mb-3">
+        <label>Nueva contraseña (opcional)</label>
+        <input type="password" name="password" class="form-control">
+        <p id="msgPwd" class="mt-2"></p>
+    </div>
+
+    <div class="mb-3">
+        <label>Rol</label>
+        <select name="rol" class="form-control">
+            <option value="admin" {% if usuario.rol=='admin' %}selected{% endif %}>Admin</option>
+            <option value="gerencia" {% if usuario.rol=='gerencia' %}selected{% endif %}>Gerencia</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Activo</label>
+        <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %}>
+    </div>
+
+    <button class="btn btn-primary">Guardar cambios</button>
+</form>
+
+<script>
+function validarPassword() {
+    const pwd = document.querySelector("input[name='password']");
+    const btn = document.querySelector("button[type='submit']");
+    const msg = document.getElementById("msgPwd");
+
+    if (!pwd.value.trim()) {
+        msg.innerHTML = "";
+        btn.disabled = false;
+        return;
+    }
+
+    const reglas = [
+        /.{8,}/,
+        /[A-Z]/,
+        /[a-z]/,
+        /[0-9]/,
+        /[^A-Za-z0-9]/
+    ];
+
+    let ok = reglas.every(r => r.test(pwd.value));
+
+    if (!ok) {
+        msg.innerHTML = "La contraseña debe tener: mínimo 8 caracteres, mayúscula, minúscula, número y símbolo.";
+        msg.style.color = "red";
+        btn.disabled = true;
+    } else {
+        msg.innerHTML = "Contraseña segura ✔";
+        msg.style.color = "green";
+        btn.disabled = false;
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const pwd = document.querySelector("input[name='password']");
+    if (pwd) pwd.addEventListener("input", validarPassword);
+});
+</script>
+{% endblock %}

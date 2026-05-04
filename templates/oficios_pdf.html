@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #444; padding: 6px; }
+        th { background: #e0e0e0; }
+        h2 { text-align: center; }
+    </style>
+</head>
+
+<body>
+
+<h2>Reporte de Oficios</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Folio</th>
+            <th>Fecha</th>
+            <th>Gerencia</th>
+            <th>Asunto</th>
+            <th>Prioridad</th>
+            <th>Fecha límite</th>
+            <th>Estatus</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for o in oficios %}
+        <tr>
+            <td>{{ o.folio }}</td>
+            <td>{{ o.fecha }}</td>
+            <td>{{ o.gerencia_turnada }}</td>
+            <td>{{ o.asunto }}</td>
+            <td>{{ o.prioridad }}</td>
+            <td>{{ o.fecha_limite }}</td>
+            <td>{{ o.estatus }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+
+</table>
+
+</body>
+</html>

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="alert alert-info">
+    <strong>Folio:</strong> {{ oficio.numero }}<br>
+    <strong>Asunto:</strong> {{ oficio.asunto }}<br>
+    <strong>Emitido por:</strong> {{ oficio.quien_emite }}<br>
+    <strong>Gerencia turnada:</strong> {{ oficio.gerencia_turnada }}<br>
+    <strong>Fecha límite:</strong> {{ oficio.fecha_limite }}<br>
+    <strong>Prioridad:</strong> {{ oficio.prioridad }}
+</div>
+<h3>📨 Responder oficio</h3>
+
+<form method="POST" class="mt-4">
+
+    <div class="mb-3">
+        <label>Estatus</label>
+        <select name="estatus" class="form-control">
+            <option>En proceso</option>
+            <option>Solucionado</option>
+            <option>En Acuerdo</option>
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>Observaciones</label>
+        <textarea name="observaciones" class="form-control"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label>Fecha de atención</label>
+        <input type="date" name="fecha_atencion" class="form-control">
+    </div>
+
+    <div class="mb-3">
+        <label>Oficio de respuesta</label>
+        <input type="text" name="oficio_respuesta" class="form-control">
+    </div>
+
+    <div class="mb-3">
+        <label>Fecha de acuse</label>
+        <input type="date" name="fecha_acuse" class="form-control">
+    </div>
+
+    <button class="btn btn-primary">Guardar respuesta</button>
+
+</form>
+
+{% endblock %}

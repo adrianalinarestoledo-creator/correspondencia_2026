@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mb-3">Usuarios del sistema</h2>
+
+<a href="{{ url_for('usuarios_nuevo') }}" class="btn btn-primary mb-3">➕ Nuevo usuario</a>
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Activo</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        {% for u in usuarios %}
+        <tr>
+            <td>{{ u.usuario }}</td>
+            <td>{{ u.rol }}</td>
+            <td>{{ "Sí" if u.activo else "No" }}</td>
+            <td>
+                <a href="{{ url_for('usuarios_editar', id=u.id) }}" class="btn btn-sm btn-warning">Editar</a>
+                <a href="{{ url_for('usuarios_bloquear', id=u.id) }}" class="btn btn-sm btn-danger">Bloquear</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <title>Sistema de Correspondencia SOAPAP</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="text-end mb-3">
+    <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
+        Cerrar sesión
+    </a>
+</div>
+
+<div class="container mt-4 mb-5">
+    <h3 class="text-center mb-4">Sistema de Correspondencia SOAPAP</h3>
+
+    <form action="{{ url_for('guardar') }}" method="POST" class="card p-4 shadow-sm">
+
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Número de oficio</label>
+                <input type="text" name="numero" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Fecha ingreso</label>
+                <input type="date" name="fecha" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Hora</label>
+                <input type="time" name="hora" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <label class="form-label">No. Exp.</label>
+                <input type="text" name="numero_expediente" class="form-control">
+            </div>
+
+            <div class="col-md-8">
+                <label class="form-label">Quién lo emite</label>
+                <input type="text" name="quien_emite" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <label class="form-label">Con copia para</label>
+                <input type="text" name="con_copia_para" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Anexos</label>
+                <input type="text" name="anexos" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+           <div class="col-md-6">
+    <label class="form-label">Gerencia a turnar</label>
+    <select name="gerencia_turnada" class="form-select" required>
+        <option value="">-- Selecciona --</option>
+        <option value="DG">Dirección General (DG)</option>
+        <option value="GAL">Gerencia de Asuntos Legales (GAL)</option>
+        <option value="GAL-Despacho">Despacho GAL (GAL-Despacho)</option>
+        <option value="GAF">Gerencia de Administración y Finanzas (GAF)</option>
+        <option value="GSMA">Gerencia de Saneamiento y Medio Ambiente (GSMA)</option>
+        <option value="GPSOI">Gerencia de Proyectos y Supervisión de Obra e Infraestructura (GPSOI)</option>
+        <option value="GSTS">Gerencia de Supervisión Técnica de los Servicios (GSTS)</option>
+        <option value="ADMIN">Administrador (ADMIN)</option>
+    </select>
+</div>
+
+            <div class="col-md-6">
+                <label class="form-label">Asunto</label>
+                <input type="text" name="asunto" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <label class="form-label">Prioridad</label>
+                <select name="prioridad" class="form-select">
+                    <option value="">-- Selecciona --</option>
+                    <option>Urgente</option>
+                    <option>Alta</option>
+                    <option>Media</option>
+                    <option>Baja</option>
+                    <option>Ninguna</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Término (días)</label>
+                <input type="number" name="termino" class="form-control">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Fecha límite de atención</label>
+                <input type="date" name="fecha_limite" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-6">
+                <label class="form-label">Responsable 1</label>
+                <input type="text" name="responsable1" class="form-control">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">Responsable 2</label>
+                <input type="text" name="responsable2" class="form-control">
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col-md-4">
+                <label class="form-label">NIS</label>
+                <input type="text" name="nis" class="form-control">
+            </div>
+        </div>
+
+        <div class="text-center mt-4">
+            <button type="submit" class="btn btn-primary px-4">Guardar oficio</button>
+            <a href="{{ url_for('lista') }}" class="btn btn-outline-secondary ms-2">Ver lista</a>
+        </div>
+
+    </form>
+</div>
+
+</body>
+</html>

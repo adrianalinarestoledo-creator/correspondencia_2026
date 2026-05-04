@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block contenido %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="fw-bold" style="font-size: 28px;">📁 Lista de Oficios</h1>
+        <p class="text-muted" style="margin-top: -6px;">Panel ejecutivo de seguimiento</p>
+    </div>
+
+    <a href="{{ url_for('nuevo') }}" class="btn btn-success btn-lg">
+        ➕ Nuevo oficio
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <table class="table table-hover align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Folio</th>
+                    <th>Fecha</th>
+                    <th>Hora</th>
+                    <th>Asunto</th>
+                    <th>Gerencia</th>
+                    <th>Prioridad</th>
+                    <th>Estatus</th>
+                    <th class="text-center">Acciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for o in oficios %}
+                <tr>
+                    <td class="fw-bold">{{ o.numero }}</td>
+                    <td>{{ o.fecha }}</td>
+                    <td>{{ o.hora }}</td>
+                    <td>{{ o.asunto }}</td>
+                    <td>{{ o.gerencia_turnada }}</td>
+
+                    <td>
+                        {% if o.prioridad == 'Alta' %}
+                            <span class="badge bg-danger">Alta</span>
+                        {% elif o.prioridad == 'Media' %}
+                            <span class="badge bg-warning text-dark">Media</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Baja</span>
+                        {% endif %}
+                    </td>
+
+                    <td>
+                        {% if o.estatus == 'Solucionado' %}
+                            <span class="badge bg-success">Solucionado</span>
+                        {% elif o.estatus == 'En proceso' %}
+                            <span class="badge bg-warning text-dark">En proceso</span>
+                        {% elif o.estatus == 'En Acuerdo' %}
+                            <span class="badge bg-info text-dark">En Acuerdo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pendiente</span>
+                        {% endif %}
+                    </td>
+
+                   <td class="text-center">
+
+    {% if o.estatus == 'Solucionado' %}
+        <span class="badge bg-success" style="font-size:14px;">✔ Respondido</span>
+    {% else %}
+        <a class="btn btn-sm btn-primary" href="{{ url_for('responder', id=o.id) }}">
+            Responder
+        </a>
+    {% endif %}
+
+</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+
+        </table>
+
+    </div>
+</div>
+
+{% endblock %}
