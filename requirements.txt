@@ -6,3 +6,5 @@ gunicorn
 pandas
 openpyxl
 reportlab
+pdfkit
+psycopg2-binary
