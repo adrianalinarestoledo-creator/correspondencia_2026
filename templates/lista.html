@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+
+{% block menu %}
+    {% include "menu.html" %}
+{% endblock %}
+
 {% block contenido %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -60,17 +65,15 @@
                         {% endif %}
                     </td>
 
-                   <td class="text-center">
-
-    {% if o.estatus == 'Solucionado' %}
-        <span class="badge bg-success" style="font-size:14px;">✔ Respondido</span>
-    {% else %}
-        <a class="btn btn-sm btn-primary" href="{{ url_for('responder', id=o.id) }}">
-            Responder
-        </a>
-    {% endif %}
-
-</td>
+                    <td class="text-center">
+                        {% if o.estatus == 'Solucionado' %}
+                            <span class="badge bg-success" style="font-size:14px;">✔ Respondido</span>
+                        {% else %}
+                            <a class="btn btn-sm btn-primary" href="{{ url_for('responder', id=o.id) }}">
+                                Responder
+                            </a>
+                        {% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -81,3 +84,9 @@
 </div>
 
 {% endblock %}
+
+<script>
+setInterval(() => {
+    location.reload();
+}, 30000);
+</script>

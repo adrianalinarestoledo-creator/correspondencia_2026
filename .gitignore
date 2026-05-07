@@ -1,0 +1,5 @@
+instance/ 
+*.db 
+*.sqlite 
+*.pyc 
+__pycache__/ 

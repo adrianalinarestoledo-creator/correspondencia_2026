@@ -6,11 +6,19 @@ from io import BytesIO
 import pandas as pd
 import pdfkit
 import re
+import os
 
 app = Flask(__name__)
-app.secret_key = "clave_secreta"
-import os
+
+# 🔐 Clave segura para sesiones (local + Render)
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "CLAVE_LOCAL_SUPER_SEGURA_2026_!_SOAPAP_987654321"
+)
+
+# 🔗 Base de datos (Render usa DATABASE_URL)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
+
 db = SQLAlchemy(app)
 
 # --------------------------
