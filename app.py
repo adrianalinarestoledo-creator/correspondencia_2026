@@ -346,14 +346,38 @@ def nuevo():
 
 @app.route("/lista")
 def lista():
-    gerencia = session["gerencia"]
+    page = request.args.get("page", 1, type=int)
 
-    if session.get("rol") == "admin":
-        oficios = Oficio.query.all()
-    else:
-        oficios = Oficio.query.filter_by(gerencia_turnada=gerencia).all()
+    q = request.args.get("q", "")
+    gerencia_filtro = request.args.get("gerencia", "")
+    estatus_filtro = request.args.get("estatus", "")
+
+    consulta = Oficio.query
+
+    # Si no es admin, solo ve su gerencia
+    if session.get("rol") != "admin":
+        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
+
+    # Filtro por texto
+    if q:
+        consulta = consulta.filter(
+            (Oficio.asunto.ilike(f"%{q}%")) |
+            (Oficio.numero.ilike(f"%{q}%"))
+        )
+
+    # Filtro por gerencia
+    if gerencia_filtro:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+
+    # Filtro por estatus
+    if estatus_filtro:
+        consulta = consulta.filter_by(estatus=estatus_filtro)
+
+    # PAGINACIÓN REAL
+    oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
 
     return render_template("lista.html", oficios=oficios)
+
 
 # --------------------------
 #   RESPUESTA DE GERENCIAS
