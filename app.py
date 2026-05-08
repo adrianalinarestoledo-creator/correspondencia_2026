@@ -77,22 +77,22 @@ class Usuario(db.Model):
 
 class Oficio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    folio = db.Column(db.String(30), unique=True)
-    numero = db.Column(db.String(50))
+    numero = db.Column(db.String(50))  # Folio SOAPAP
+    numero_oficio = db.Column(db.String(100))  # ⭐ Número de oficio externo
     fecha = db.Column(db.String(20))
     hora = db.Column(db.String(20))
     numero_expediente = db.Column(db.String(100))
     quien_emite = db.Column(db.String(200))
     con_copia_para = db.Column(db.String(200))
     anexos = db.Column(db.String(200))
-    gerencia_turnada = db.Column(db.String(200))
-    asunto = db.Column(db.Text)
-    prioridad = db.Column(db.String(50))
+    gerencia_turnada = db.Column(db.String(50))
+    asunto = db.Column(db.String(500))
+    prioridad = db.Column(db.String(20))
     termino = db.Column(db.Integer)
     fecha_limite = db.Column(db.String(20))
     responsable1 = db.Column(db.String(200))
     responsable2 = db.Column(db.String(200))
-    nis = db.Column(db.String(100))
+    nis = db.Column(db.String(50))
 
     # Campos de respuesta de gerencias
     estatus = db.Column(db.String(50))
@@ -180,23 +180,19 @@ def logout():
 #  GENERAR OFICIO
 # --------------------------
 def generar_folio():
-    ultimo = Oficio.query.filter(
-        Oficio.numero.like("SOAPAP-2026-%")
-    ).order_by(
-        Oficio.numero.desc()
-    ).first()
+    ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
 
-    if not ultimo:
+    if not ultimo or not ultimo.numero:
         return "SOAPAP-2026-00001"
 
     try:
-        consecutivo = int(ultimo.numero.split("-")[2])
+        # Extraer la parte numérica final
+        consecutivo = int(ultimo.numero.split("-")[-1])
+        nuevo = consecutivo + 1
+        return f"SOAPAP-2026-{nuevo:05d}"
     except:
-        consecutivo = 0
-
-    nuevo = consecutivo + 1
-    return f"SOAPAP-2026-{nuevo:05d}"
-
+        # Si el formato está mal, reiniciar desde 1
+        return "SOAPAP-2026-00001"
 
 # --------------------------
 #   PROTEGER RUTAS
