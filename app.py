@@ -605,6 +605,10 @@ def confirmar_importacion():
     session.pop("excel_temp_file", None)
 
     return redirect(url_for("lista"))
+    @app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
+
 # --------------------------
 #   INICIO
 # --------------------------
