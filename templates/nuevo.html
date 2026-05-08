@@ -44,24 +44,18 @@
         <input type="text" name="anexos" class="form-control">
     </div>
 
-<div class="mb-3">
-    <label>Gerencia a turnar</label>
-    <select name="gerencia_turnada" class="form-select" required>
-        <option value="">Seleccione...</option>
-        <option value="DG">DG</option>
-        <option value="GAL">GAL</option>
-        <option value="GAL-Despacho">GAL-Despacho</option>
-        <option value="GPSOI">GPSOI</option>
-        <option value="GSMA">GSMA</option>
-        <option value="GSTS">GSTS</option>
-    </select>
-</div>
-
-<div class="mt-3 d-flex gap-2">
-    <button class="btn btn-success">Guardar</button>
-    <a href="{{ url_for('lista') }}" class="btn btn-secondary">Cancelar</a>
-</div>
-
+    <div class="mb-3">
+        <label>Gerencia a turnar</label>
+        <select name="gerencia_turnada" class="form-select" required>
+            <option value="">Seleccione...</option>
+            <option value="DG">DG</option>
+            <option value="GAL">GAL</option>
+            <option value="GAL-Despacho">GAL-Despacho</option>
+            <option value="GPSOI">GPSOI</option>
+            <option value="GSMA">GSMA</option>
+            <option value="GSTS">GSTS</option>
+        </select>
+    </div>
 
     <div class="mb-3">
         <label>Asunto</label>
@@ -109,7 +103,11 @@
         <input type="text" name="nis" class="form-control">
     </div>
 
-    <button class="btn btn-success">Guardar</button>
+    <!-- ⭐ SOLO ESTE BLOQUE DE BOTONES DEBE EXISTIR -->
+    <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-success">Guardar</button>
+        <a href="{{ url_for('lista') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
 
 </form>
 
