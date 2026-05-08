@@ -48,6 +48,7 @@
     <thead class="table-dark">
         <tr>
             <th>Folio</th>
+           <th>Número de oficio</th>
             <th>Fecha</th>
             <th>Hora</th>
             <th>Asunto</th>
@@ -65,7 +66,7 @@
 
             <!-- ⭐ SOLO EL FOLIO REAL (o.numero) -->
             <td>{{ o.numero }}</td>
-
+            <td>{{ o.numero_oficio }}</td>
             <td>{{ o.fecha }}</td>
             <td>{{ o.hora or "" }}</td>
             <td>{{ o.asunto }}</td>
