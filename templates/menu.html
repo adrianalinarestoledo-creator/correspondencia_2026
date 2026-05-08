@@ -1,15 +1,26 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm border-bottom">
     <div class="container-fluid">
 
-        <a class="navbar-brand" href="{{ url_for('lista') }}">📁 Correspondencia 2026</a>
+        <!-- TÍTULO / LOGO -->
+        <a class="navbar-brand fw-bold text-primary" href="{{ url_for('lista') }}">
+            📁 Correspondencia 2026
+        </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav">
             <span class="navbar-toggler-icon"></span>
         </button>
 
         <div class="collapse navbar-collapse" id="menuNav">
+
+            <!-- OPCIONES IZQUIERDA -->
             <ul class="navbar-nav me-auto">
 
+                <!-- Lista siempre visible -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('lista') }}">📄 Lista</a>
+                </li>
+
+                <!-- SOLO ADMIN -->
                 {% if session.get('rol') == 'admin' %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('nuevo') }}">➕ Nuevo Oficio</a>
@@ -24,6 +35,7 @@
                 </li>
                 {% endif %}
 
+                <!-- Exportar (todos los roles) -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_excel') }}">📤 Exportar Excel</a>
                 </li>
@@ -34,11 +46,34 @@
 
             </ul>
 
-            <span class="navbar-text text-white me-3">
-                {{ session.get('gerencia') }}
-            </span>
+            <!-- OPCIONES DERECHA -->
+            <ul class="navbar-nav">
 
-            <a class="btn btn-outline-light" href="{{ url_for('logout') }}">Salir</a>
+                <!-- BADGE DE ADMIN -->
+                {% if session.get('rol') == 'admin' %}
+                <li class="nav-item d-flex align-items-center me-3">
+                    <span class="badge bg-secondary text-dark p-2" style="font-size: 0.85rem;">
+                        🛡️ Administrador
+                    </span>
+                </li>
+                {% endif %}
+
+                <!-- GERENCIA (solo si existe) -->
+                {% if session.get('gerencia') %}
+                <li class="nav-item d-flex align-items-center me-3">
+                    <span class="text-muted small">
+                        {{ session.get('gerencia') }}
+                    </span>
+                </li>
+                {% endif %}
+
+                <!-- BOTÓN SALIR -->
+                <li class="nav-item">
+                    <a class="btn btn-outline-dark" href="{{ url_for('logout') }}">Salir</a>
+                </li>
+
+            </ul>
+
         </div>
     </div>
 </nav>
