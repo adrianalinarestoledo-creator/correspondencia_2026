@@ -429,22 +429,27 @@ def exportar_excel():
     data = []
     for o in oficios:
         data.append({
-            "Folio": o.folio,
+            "Folio SOAPAP": o.numero,                     # ⭐ Folio institucional
+            "Número de oficio externo": o.numero_oficio,  # ⭐ Nuevo campo
             "Fecha": o.fecha,
             "Hora": o.hora,
-            "Numero": o.numero,
-            "Numero expediente": o.numero_expediente,
+            "Número expediente": o.numero_expediente,
             "Quien emite": o.quien_emite,
-            "Gerencia": o.gerencia_turnada,
+            "Con copia para": o.con_copia_para,
+            "Anexos": o.anexos,
+            "Gerencia turnada": o.gerencia_turnada,
             "Asunto": o.asunto,
             "Prioridad": o.prioridad,
             "Fecha límite": o.fecha_limite,
-            "Responsable1": o.responsable1,
-            "Responsable2": o.responsable2,
+            "Responsable Director": o.responsable1,
+            "Responsable Gerente": o.responsable2,
             "NIS": o.nis,
             "Estatus": o.estatus,
             "Fecha atención": o.fecha_atencion,
             "Días atención": o.dias_atencion,
+            "Oficio respuesta": o.oficio_respuesta,
+            "Fecha acuse": o.fecha_acuse,
+            "Observaciones": o.observaciones
         })
 
     df = pd.DataFrame(data)
