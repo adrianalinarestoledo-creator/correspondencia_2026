@@ -290,8 +290,15 @@ def nuevo():
     if "rol" not in session or session["rol"] != "admin":
         return "Solo el admin puede registrar oficios"
 
+    # ⭐ GET → mostrar formulario con folio automático
+    if request.method == "GET":
+        folio_generado = generar_folio()
+        return render_template("nuevo.html", folio_generado=folio_generado)
+
+    # ⭐ POST → guardar oficio
     if request.method == "POST":
-        numero = request.form["numero"]
+        folio = request.form["folio"]   # ⭐ AHORA ESTE ES EL FOLIO REAL
+
         fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d")
         hora = request.form["hora"]
         numero_expediente = request.form["numero_expediente"]
@@ -305,6 +312,7 @@ def nuevo():
         responsable2 = request.form["responsable2"]
         nis = request.form["nis"]
 
+        # ⭐ Cálculo de fecha límite
         if prioridad == "Urgente":
             fecha_limite = sumar_dias_habiles(fecha, 1)
         elif prioridad == "Alta":
@@ -318,8 +326,9 @@ def nuevo():
 
         fecha_limite_str = fecha_limite.strftime("%Y-%m-%d") if fecha_limite else ""
 
+        # ⭐ Guardar usando el folio automático
         nuevo = Oficio(
-            numero=numero,
+            numero=folio,  # ⭐ AQUÍ SE GUARDA EL FOLIO REAL
             fecha=fecha.strftime("%Y-%m-%d"),
             hora=hora,
             numero_expediente=numero_expediente,
