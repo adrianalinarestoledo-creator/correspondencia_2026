@@ -180,9 +180,11 @@ def logout():
 #  GENERAR OFICIO
 # --------------------------
 def generar_folio():
-    ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
+    ultimo = Oficio.query.filter(Oficio.numero.like("SOAPAP-2026-%")) \
+                         .order_by(Oficio.numero.desc()) \
+                         .first()
 
-    if not ultimo or not ultimo.numero:
+    if not ultimo:
         return "SOAPAP-2026-0001"
 
     try:
@@ -191,7 +193,8 @@ def generar_folio():
         consecutivo = 0
 
     nuevo = consecutivo + 1
-    return f"SOAPAP-2026-{nuevo:04d}"
+    return f"SOAPAP-2026-{nuevo:05d}"
+
 # --------------------------
 #   PROTEGER RUTAS
 # --------------------------
