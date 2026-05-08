@@ -160,3 +160,61 @@ document.addEventListener("DOMContentLoaded", function () {
 </script>
 
 {% endblock %}
+<script>
+// ===============================
+// VALIDACIÓN VISUAL PROFESIONAL
+// ===============================
+document.querySelector("form").addEventListener("submit", function (e) {
+
+    let valido = true;
+    let campos = document.querySelectorAll("input[required], select[required], textarea[required]");
+
+    campos.forEach(campo => {
+        if (!campo.value.trim()) {
+            campo.classList.add("is-invalid");
+            campo.classList.remove("is-valid");
+            valido = false;
+        } else {
+            campo.classList.remove("is-invalid");
+            campo.classList.add("is-valid");
+        }
+    });
+
+    if (!valido) {
+        e.preventDefault();
+        alert("Por favor complete los campos obligatorios.");
+        return;
+    }
+
+    // ===============================
+    // CONFIRMACIÓN ANTES DE GUARDAR
+    // ===============================
+    let confirmar = confirm("¿Deseas guardar este oficio?");
+    if (!confirmar) {
+        e.preventDefault();
+    }
+});
+
+// Quitar error visual al escribir
+document.querySelectorAll("input, select, textarea").forEach(campo => {
+    campo.addEventListener("input", function () {
+        if (campo.value.trim()) {
+            campo.classList.remove("is-invalid");
+            campo.classList.add("is-valid");
+        }
+    });
+});
+</script>
+
+<style>
+/* Estilo profesional */
+.is-invalid {
+    border: 2px solid #dc3545 !important;
+    background-color: #ffe6e6;
+}
+
+.is-valid {
+    border: 2px solid #198754 !important;
+    background-color: #e6ffed;
+}
+</style>
