@@ -65,7 +65,7 @@
 </form>
 
 <!-- ============================
-     TABLA COMPLETA
+     TABLA (solo Observaciones)
 ============================= -->
 <div class="card shadow-sm">
     <div class="card-body">
@@ -81,10 +81,6 @@
                     <th>Prioridad</th>
                     <th>Estatus</th>
                     <th>Observaciones</th>
-                    <th>Fecha Atención</th>
-                    <th>Oficio Respuesta</th>
-                    <th>Acuse</th>
-                    <th>Días</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -121,7 +117,7 @@
                     </td>
 
                     <td>{{ o.observaciones }}</td>
-                   
+
                     <td class="text-center">
                         {% if o.estatus == 'Solucionado' %}
                             <span class="badge bg-success" style="font-size:14px;">✔ Respondido</span>
