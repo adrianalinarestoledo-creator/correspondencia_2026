@@ -185,7 +185,7 @@ def generar_folio():
                          .first()
 
     if not ultimo:
-        return "SOAPAP-2026-0001"
+        return "SOAPAP-2026-00001"
 
     try:
         consecutivo = int(ultimo.numero.split("-")[2])
