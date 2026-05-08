@@ -1,4 +1,9 @@
 {% extends "base.html" %}
+
+{% block menu %}
+    {% include "menu.html" %}
+{% endblock %}
+
 {% block contenido %}
 <div class="alert alert-info">
     <strong>Folio:</strong> {{ oficio.numero }}<br>
@@ -8,6 +13,7 @@
     <strong>Fecha límite:</strong> {{ oficio.fecha_limite }}<br>
     <strong>Prioridad:</strong> {{ oficio.prioridad }}
 </div>
+
 <h3>📨 Responder oficio</h3>
 
 <form method="POST" class="mt-4">
@@ -44,5 +50,4 @@
     <button class="btn btn-primary">Guardar respuesta</button>
 
 </form>
-
 {% endblock %}
