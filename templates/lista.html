@@ -17,76 +17,45 @@
     </a>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-body">
+<!-- ============================
+     FILTROS (como ayer)
+============================= -->
+<form method="GET" class="row g-3 mb-4">
 
-        <table class="table table-hover align-middle">
-            <thead class="table-dark">
-                <tr>
-                    <th>Folio</th>
-                    <th>Fecha</th>
-                    <th>Hora</th>
-                    <th>Asunto</th>
-                    <th>Gerencia</th>
-                    <th>Prioridad</th>
-                    <th>Estatus</th>
-                    <th class="text-center">Acciones</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for o in oficios %}
-                <tr>
-                    <td class="fw-bold">{{ o.numero }}</td>
-                    <td>{{ o.fecha }}</td>
-                    <td>{{ o.hora }}</td>
-                    <td>{{ o.asunto }}</td>
-                    <td>{{ o.gerencia_turnada }}</td>
-
-                    <td>
-                        {% if o.prioridad == 'Alta' %}
-                            <span class="badge bg-danger">Alta</span>
-                        {% elif o.prioridad == 'Media' %}
-                            <span class="badge bg-warning text-dark">Media</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Baja</span>
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if o.estatus == 'Solucionado' %}
-                            <span class="badge bg-success">Solucionado</span>
-                        {% elif o.estatus == 'En proceso' %}
-                            <span class="badge bg-warning text-dark">En proceso</span>
-                        {% elif o.estatus == 'En Acuerdo' %}
-                            <span class="badge bg-info text-dark">En Acuerdo</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Pendiente</span>
-                        {% endif %}
-                    </td>
-
-                    <td class="text-center">
-                        {% if o.estatus == 'Solucionado' %}
-                            <span class="badge bg-success" style="font-size:14px;">✔ Respondido</span>
-                        {% else %}
-                            <a class="btn btn-sm btn-primary" href="{{ url_for('responder', id=o.id) }}">
-                                Responder
-                            </a>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-
-        </table>
-
+    <div class="col-md-3">
+        <label class="form-label">Buscar por asunto o folio</label>
+        <input type="text" name="q" value="{{ request.args.get('q','') }}" class="form-control">
     </div>
-</div>
 
-{% endblock %}
+    <div class="col-md-3">
+        <label class="form-label">Gerencia</label>
+        <select name="gerencia" class="form-select">
+            <option value="">Todas</option>
+            <option value="DG">DG</option>
+            <option value="GAL">GAL</option>
+            <option value="GPSOI">GPSOI</option>
+            <option value="GSMA">GSMA</option>
+            <option value="GSTS">GSTS</option>
+        </select>
+    </div>
 
-<script>
-setInterval(() => {
-    location.reload();
-}, 30000);
-</script>
+    <div class="col-md-3">
+        <label class="form-label">Estatus</label>
+        <select name="estatus" class="form-select">
+            <option value="">Todos</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En proceso">En proceso</option>
+            <option value="En Acuerdo">En Acuerdo</option>
+            <option value="Solucionado">Solucionado</option>
+        </select>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end">
+        <button class="btn btn-primary w-100">Filtrar</button>
+    </div>
+
+</form>
+
+<!-- ============================
+     TABLA
+================
