@@ -6,6 +6,13 @@
 <form method="POST" class="mt-4">
 
     <div class="row">
+
+        <!-- ⭐ FOLIO AUTOMÁTICO -->
+        <div class="col-md-4 mb-3">
+            <label>Folio</label>
+            <input type="text" name="folio" class="form-control" value="{{ folio_generado }}" readonly>
+        </div>
+
         <div class="col-md-4 mb-3">
             <label>Número</label>
             <input type="text" name="numero" class="form-control" required>
@@ -103,7 +110,7 @@
         <input type="text" name="nis" class="form-control">
     </div>
 
-    <!-- ⭐ SOLO ESTE BLOQUE DE BOTONES DEBE EXISTIR -->
+    <!-- ⭐ BOTONES FINALES -->
     <div class="mt-3 d-flex gap-2">
         <button class="btn btn-success">Guardar</button>
         <a href="{{ url_for('lista') }}" class="btn btn-secondary">Cancelar</a>
@@ -159,11 +166,10 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
-{% endblock %}
+<!-- ===============================
+     VALIDACIÓN VISUAL + CONFIRMACIÓN
+=============================== -->
 <script>
-// ===============================
-// VALIDACIÓN VISUAL PROFESIONAL
-// ===============================
 document.querySelector("form").addEventListener("submit", function (e) {
 
     let valido = true;
@@ -186,16 +192,12 @@ document.querySelector("form").addEventListener("submit", function (e) {
         return;
     }
 
-    // ===============================
-    // CONFIRMACIÓN ANTES DE GUARDAR
-    // ===============================
     let confirmar = confirm("¿Deseas guardar este oficio?");
     if (!confirmar) {
         e.preventDefault();
     }
 });
 
-// Quitar error visual al escribir
 document.querySelectorAll("input, select, textarea").forEach(campo => {
     campo.addEventListener("input", function () {
         if (campo.value.trim()) {
@@ -207,7 +209,6 @@ document.querySelectorAll("input, select, textarea").forEach(campo => {
 </script>
 
 <style>
-/* Estilo profesional */
 .is-invalid {
     border: 2px solid #dc3545 !important;
     background-color: #ffe6e6;
@@ -218,3 +219,5 @@ document.querySelectorAll("input, select, textarea").forEach(campo => {
     background-color: #e6ffed;
 }
 </style>
+
+{% endblock %}
