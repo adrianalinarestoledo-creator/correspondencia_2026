@@ -12,13 +12,15 @@
         <p class="text-muted" style="margin-top: -6px;">Panel ejecutivo de seguimiento</p>
     </div>
 
+    {% if session.get("rol") == "admin" %}
     <a href="{{ url_for('nuevo') }}" class="btn btn-success btn-lg">
         ➕ Nuevo oficio
     </a>
+    {% endif %}
 </div>
 
 <!-- ============================
-     FILTROS
+     FILTROS COMPLETOS
 ============================= -->
 <form method="GET" class="row g-3 mb-4">
 
@@ -27,7 +29,7 @@
         <input type="text" name="q" value="{{ request.args.get('q','') }}" class="form-control">
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label class="form-label">Gerencia</label>
         <select name="gerencia" class="form-select">
             <option value="">Todas</option>
@@ -39,7 +41,7 @@
         </select>
     </div>
 
-    <div class="col-md-3">
+    <div class="col-md-2">
         <label class="form-label">Estatus</label>
         <select name="estatus" class="form-select">
             <option value="">Todos</option>
@@ -50,14 +52,20 @@
         </select>
     </div>
 
-    <div class="col-md-3 d-flex align-items-end">
-        <button class="btn btn-primary w-100">Filtrar</button>
+    <div class="col-md-2">
+        <label class="form-label">Fecha ingreso</label>
+        <input type="date" name="fecha" value="{{ request.args.get('fecha','') }}" class="form-control">
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end gap-2">
+        <button class="btn btn-primary w-50">Filtrar</button>
+        <a href="{{ url_for('lista') }}" class="btn btn-secondary w-50">Limpiar</a>
     </div>
 
 </form>
 
 <!-- ============================
-     TABLA
+     TABLA COMPLETA
 ============================= -->
 <div class="card shadow-sm">
     <div class="card-body">
@@ -72,6 +80,11 @@
                     <th>Gerencia</th>
                     <th>Prioridad</th>
                     <th>Estatus</th>
+                    <th>Observaciones</th>
+                    <th>Fecha Atención</th>
+                    <th>Oficio Respuesta</th>
+                    <th>Acuse</th>
+                    <th>Días</th>
                     <th class="text-center">Acciones</th>
                 </tr>
             </thead>
@@ -94,25 +107,24 @@
                             <span class="badge bg-secondary">Baja</span>
                         {% endif %}
                     </td>
-<td>
-    {% if o.estatus == 'Solucionado' %}
-        <span class="badge bg-success">Solucionado</span>
-    {% elif o.estatus == 'En proceso' %}
-        <span class="badge bg-warning text-dark">En proceso</span>
-    {% elif o.estatus == 'En Acuerdo' %}
-        <span class="badge bg-info text-dark">En Acuerdo</span>
-    {% else %}
-        <span class="badge bg-secondary">Pendiente</span>
-    {% endif %}
-</td>
 
-<td>{{ o.observaciones }}</td>
-<td>{{ o.fecha_atencion }}</td>
-<td>{{ o.oficio_respuesta }}</td>
-<td>{{ o.fecha_acuse }}</td>
-<td>{{ o.dias_atencion }}</td>
-
+                    <td>
+                        {% if o.estatus == 'Solucionado' %}
+                            <span class="badge bg-success">Solucionado</span>
+                        {% elif o.estatus == 'En proceso' %}
+                            <span class="badge bg-warning text-dark">En proceso</span>
+                        {% elif o.estatus == 'En Acuerdo' %}
+                            <span class="badge bg-info text-dark">En Acuerdo</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Pendiente</span>
+                        {% endif %}
                     </td>
+
+                    <td>{{ o.observaciones }}</td>
+                    <td>{{ o.fecha_atencion }}</td>
+                    <td>{{ o.oficio_respuesta }}</td>
+                    <td>{{ o.fecha_acuse }}</td>
+                    <td>{{ o.dias_atencion }}</td>
 
                     <td class="text-center">
                         {% if o.estatus == 'Solucionado' %}
