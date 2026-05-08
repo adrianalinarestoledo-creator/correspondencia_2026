@@ -615,4 +615,105 @@ if __name__ == "__main__":
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+
+    # ============================
+    # 1. Obtener todos los oficios
+    # ============================
+    oficios = Oficio.query.all()
+
+    # ============================
+    # 2. KPIs generales
+    # ============================
+    total_recibidos = len(oficios)
+    total_atendidos = sum(1 for o in oficios if o.estatus == "Solucionado")
+    total_pendientes = total_recibidos - total_atendidos
+
+    porcentaje_cumplimiento = 0
+    if total_recibidos > 0:
+        porcentaje_cumplimiento = round((total_atendidos / total_recibidos) * 100, 1)
+
+    # ============================
+    # 3. Tabla por gerencia
+    # ============================
+    gerencias = {}
+    for o in oficios:
+        g = o.gerencia_turnada or "SIN GERENCIA"
+
+        if g not in gerencias:
+            gerencias[g] = {
+                "recibidos": 0,
+                "atendidos": 0,
+                "pendientes": 0,
+                "dias": []
+            }
+
+        gerencias[g]["recibidos"] += 1
+
+        if o.estatus == "Solucionado":
+            gerencias[g]["atendidos"] += 1
+            if o.dias_atencion:
+                gerencias[g]["dias"].append(o.dias_atencion)
+        else:
+            gerencias[g]["pendientes"] += 1
+
+    # Convertir a lista para la tabla
+    tabla_gerencias = []
+    for g, datos in gerencias.items():
+        promedio = round(sum(datos["dias"]) / len(datos["dias"]), 1) if datos["dias"] else 0
+        cumplimiento = round((datos["atendidos"] / datos["recibidos"]) * 100, 1) if datos["recibidos"] else 0
+
+        tabla_gerencias.append({
+            "gerencia": g,
+            "recibidos": datos["recibidos"],
+            "atendidos": datos["atendidos"],
+            "pendientes": datos["pendientes"],
+            "cumplimiento": cumplimiento,
+            "promedio_dias": promedio
+        })
+
+    # ============================
+    # 4. Datos para gráficas mensuales
+    # ============================
+    meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
+             "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+
+    recibidos_mes = [0] * 12
+    atendidos_mes = [0] * 12
+    dias_promedio = [0] * 12
+
+    dias_por_mes = {i: [] for i in range(12)}
+
+    for o in oficios:
+        if o.fecha:
+            try:
+                mes = int(o.fecha.split("-")[1]) - 1
+            except:
+                continue
+
+            recibidos_mes[mes] += 1
+
+            if o.estatus == "Solucionado":
+                atendidos_mes[mes] += 1
+                if o.dias_atencion:
+                    dias_por_mes[mes].append(o.dias_atencion)
+
+    for i in range(12):
+        if dias_por_mes[i]:
+            dias_promedio[i] = round(sum(dias_por_mes[i]) / len(dias_por_mes[i]), 1)
+
+    # ============================
+    # 5. Enviar datos al dashboard
+    # ============================
+    return render_template(
+        "dashboard.html",
+        total_recibidos=total_recibidos,
+        total_atendidos=total_atendidos,
+        total_pendientes=total_pendientes,
+        porcentaje_cumplimiento=porcentaje_cumplimiento,
+        tabla_gerencias=tabla_gerencias,
+        meses=meses,
+        recibidos_mes=recibidos_mes,
+        atendidos_mes=atendidos_mes,
+        dias_promedio=dias_promedio
+    )
+
