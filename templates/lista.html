@@ -94,17 +94,24 @@
                             <span class="badge bg-secondary">Baja</span>
                         {% endif %}
                     </td>
+<td>
+    {% if o.estatus == 'Solucionado' %}
+        <span class="badge bg-success">Solucionado</span>
+    {% elif o.estatus == 'En proceso' %}
+        <span class="badge bg-warning text-dark">En proceso</span>
+    {% elif o.estatus == 'En Acuerdo' %}
+        <span class="badge bg-info text-dark">En Acuerdo</span>
+    {% else %}
+        <span class="badge bg-secondary">Pendiente</span>
+    {% endif %}
+</td>
 
-                    <td>
-                        {% if o.estatus == 'Solucionado' %}
-                            <span class="badge bg-success">Solucionado</span>
-                        {% elif o.estatus == 'En proceso' %}
-                            <span class="badge bg-warning text-dark">En proceso</span>
-                        {% elif o.estatus == 'En Acuerdo' %}
-                            <span class="badge bg-info text-dark">En Acuerdo</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Pendiente</span>
-                        {% endif %}
+<td>{{ o.observaciones }}</td>
+<td>{{ o.fecha_atencion }}</td>
+<td>{{ o.oficio_respuesta }}</td>
+<td>{{ o.fecha_acuse }}</td>
+<td>{{ o.dias_atencion }}</td>
+
                     </td>
 
                     <td class="text-center">
