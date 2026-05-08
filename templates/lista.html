@@ -57,17 +57,47 @@
     <tbody>
         {% for o in oficios %}
         <tr>
+
+            <!-- ⭐ SOLO EL FOLIO REAL (o.numero) -->
             <td>{{ o.numero }}</td>
+
             <td>{{ o.fecha }}</td>
             <td>{{ o.hora or "" }}</td>
             <td>{{ o.asunto }}</td>
             <td>{{ o.gerencia_turnada }}</td>
-            <td>{{ o.prioridad }}</td>
-            <td>{{ o.estatus }}</td>
+
+            <!-- ⭐ PRIORIDAD CON COLOR -->
+            <td>
+                {% if o.prioridad == "Urgente" %}
+                    <span class="badge bg-danger">Urgente</span>
+                {% elif o.prioridad == "Alta" %}
+                    <span class="badge bg-warning text-dark">Alta</span>
+                {% elif o.prioridad == "Media" %}
+                    <span class="badge bg-info text-dark">Media</span>
+                {% elif o.prioridad == "Baja" %}
+                    <span class="badge bg-secondary">Baja</span>
+                {% else %}
+                    <span class="badge bg-light text-dark">N/A</span>
+                {% endif %}
+            </td>
+
+            <!-- ⭐ ESTATUS CON COLOR -->
+            <td>
+                {% if o.estatus == "Pendiente" %}
+                    <span class="badge bg-danger">Pendiente</span>
+                {% elif o.estatus == "Atendido" %}
+                    <span class="badge bg-success">Atendido</span>
+                {% else %}
+                    <span class="badge bg-secondary">N/A</span>
+                {% endif %}
+            </td>
+
             <td>{{ o.observaciones }}</td>
+
             <td>
                 <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">Responder</a>
             </td>
+
         </tr>
         {% endfor %}
     </tbody>
