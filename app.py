@@ -605,9 +605,6 @@ def confirmar_importacion():
     session.pop("excel_temp_file", None)
 
     return redirect(url_for("lista"))
-@app.route('/dashboard')
-def dashboard():
-    return render_template('dashboard.html')
 
 # --------------------------
 #   INICIO
@@ -615,3 +612,7 @@ def dashboard():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
+
+@app.route('/dashboard')
+def dashboard():
+    return render_template('dashboard.html')
