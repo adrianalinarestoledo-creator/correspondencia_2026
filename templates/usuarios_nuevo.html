@@ -1,5 +1,10 @@
 {% extends "base.html" %}
-{% block content %}
+
+{% block menu %}
+    {% include "menu.html" %}
+{% endblock %}
+
+{% block contenido %}
 <h2 class="mb-3">Crear usuario</h2>
 
 <form method="POST">
