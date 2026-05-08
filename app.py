@@ -323,23 +323,25 @@ def nuevo():
 
         fecha_limite_str = fecha_limite.strftime("%Y-%m-%d") if fecha_limite else ""
 
-        nuevo = Oficio(
-            numero=folio,  # ⭐ SE GUARDA COMO NUMERO
-            fecha=fecha.strftime("%Y-%m-%d"),
-            hora=hora,
-            numero_expediente=numero_expediente,
-            quien_emite=quien_emite,
-            con_copia_para=con_copia_para,
-            anexos=anexos,
-            gerencia_turnada=gerencia_turnada,
-            asunto=asunto,
-            prioridad=prioridad,
-            termino=0,
-            fecha_limite=fecha_limite_str,
-            responsable1=responsable1,
-            responsable2=responsable2,
-            nis=nis
-        )
+    nuevo = Oficio(
+    numero=folio,
+    numero_oficio=numero_oficio,  # ⭐ Guardado correcto
+    fecha=fecha.strftime("%Y-%m-%d"),
+    hora=hora,
+    numero_expediente=numero_expediente,
+    quien_emite=quien_emite,
+    con_copia_para=con_copia_para,
+    anexos=anexos,
+    gerencia_turnada=gerencia_turnada,
+    asunto=asunto,
+    prioridad=prioridad,
+    termino=0,
+    fecha_limite=fecha_limite_str,
+    responsable1=responsable1,
+    responsable2=responsable2,
+    nis=nis
+)
+
 
         db.session.add(nuevo)
         db.session.commit()
