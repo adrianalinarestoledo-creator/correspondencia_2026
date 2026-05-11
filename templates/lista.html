@@ -6,7 +6,7 @@
 
 {% block contenido %}
 
-<h3>📄 Lista de oficios</h3>
+<h3 class="mb-4">📄 Lista de oficios</h3>
 
 <form method="GET" class="row g-3 mb-4">
 
@@ -21,9 +21,10 @@
         </select>
     </div>
 
+    <!-- ⭐ FILTRO POR GERENCIA -->
     <div class="col-md-3">
-        <label>Gerencia</label>
-        <select name="gerencia" class="form-select">
+        <label class="form-label fw-bold text-secondary">Gerencia</label>
+        <select name="gerencia" class="form-select filtro-gris">
             <option value="">Todas</option>
             <option value="DG">DG</option>
             <option value="GAL">GAL</option>
@@ -34,20 +35,23 @@
         </select>
     </div>
 
+    <!-- ⭐ FILTRO POR ESTATUS -->
     <div class="col-md-3">
-        <label>Estatus</label>
-        <select name="estatus" class="form-select">
+        <label class="form-label fw-bold text-secondary">Estatus</label>
+        <select name="estatus" class="form-select filtro-gris">
             <option value="">Todos</option>
             <option value="Pendiente">Pendiente</option>
             <option value="Atendido">Atendido</option>
         </select>
     </div>
 
+    <!-- ⭐ FILTRO POR FECHA -->
     <div class="col-md-3">
-        <label>Fecha ingreso</label>
-        <input type="date" name="fecha" class="form-control">
+        <label class="form-label fw-bold text-secondary">Fecha ingreso</label>
+        <input type="date" name="fecha" class="form-control filtro-gris">
     </div>
 
+    <!-- ⭐ BOTONES -->
     <div class="col-md-3 d-flex align-items-end gap-2">
         <button class="btn btn-primary">Filtrar</button>
         <a href="{{ url_for('lista') }}" class="btn btn-secondary">Limpiar</a>
@@ -55,6 +59,7 @@
 
 </form>
 
+<!-- ⭐ TABLA DE OFICIOS -->
 <table class="table table-striped table-bordered">
     <thead class="table-dark">
         <tr>
@@ -82,6 +87,7 @@
             <td>{{ o.asunto }}</td>
             <td>{{ o.gerencia_turnada }}</td>
 
+            <!-- ⭐ PRIORIDAD -->
             <td>
                 {% if o.prioridad == "Urgente" %}
                     <span class="badge bg-danger">Urgente</span>
@@ -96,6 +102,7 @@
                 {% endif %}
             </td>
 
+            <!-- ⭐ ESTATUS -->
             <td>
                 {% if o.estatus == "Pendiente" %}
                     <span class="badge bg-danger">Pendiente</span>
