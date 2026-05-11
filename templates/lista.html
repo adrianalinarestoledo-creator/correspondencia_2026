@@ -6,20 +6,9 @@
 
 {% block contenido %}
 
-<h3 class="mb-4">📄 Lista de oficios</h3>
+<h3 class="mb-4">📄 Correspondencia {{ session['anio'] }}</h3>
 
 <form method="GET" class="row g-3 mb-4">
-
-    <!-- ⭐ FILTRO POR AÑO (2026–2036) -->
-    <div class="col-md-2">
-        <label for="anio" class="form-label fw-bold text-secondary">Año</label>
-        <select id="anio" name="anio" class="form-select filtro-gris">
-            <option value="">Todos</option>
-            {% for y in range(2026, 2037) %}
-                <option value="{{ y }}">{{ y }}</option>
-            {% endfor %}
-        </select>
-    </div>
 
     <!-- ⭐ FILTRO POR GERENCIA -->
     <div class="col-md-3">
