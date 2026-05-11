@@ -361,6 +361,17 @@ def lista():
     # ⭐ Filtrar por año automáticamente
     consulta = consulta.filter(Oficio.fecha.like(f"{anio}-%"))
 
+    # ⭐ BUSCADOR GENERAL (folio, NIS, número de oficio)
+    q = request.args.get("q")
+    if q:
+        consulta = consulta.filter(
+            or_(
+                Oficio.numero.ilike(f"%{q}%"),          # Folio SOAPAP-00001
+                Oficio.nis.ilike(f"%{q}%"),             # NIS
+                Oficio.numero_oficio.ilike(f"%{q}%")    # Número de oficio externo
+            )
+        )
+
     # ⭐ Filtros opcionales
     gerencia_f = request.args.get("gerencia")
     estatus_f = request.args.get("estatus")
@@ -392,6 +403,7 @@ def lista():
         else:
             consulta = consulta.filter_by(gerencia_turnada=gerencia)
 
+    # ⭐ Orden final
     oficios = consulta.order_by(Oficio.id.desc()).all()
 
     return render_template("lista.html", oficios=oficios)
