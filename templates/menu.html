@@ -1,6 +1,7 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm border-bottom">
     <div class="container-fluid">
 
+        <!-- ⭐ Marca con año dinámico -->
         <a class="navbar-brand fw-bold text-primary" href="{{ url_for('lista') }}">
             📁 Correspondencia {{ session.get('anio') }}
         </a>
@@ -13,11 +14,12 @@
 
             <ul class="navbar-nav me-auto">
 
+                <!-- ⭐ Lista principal -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('lista') }}">📄 Lista</a>
                 </li>
 
-                <!-- ⭐ MENÚ DE AÑOS AUTOMÁTICO -->
+                <!-- ⭐ Menú de años -->
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                         Años
@@ -33,20 +35,26 @@
                     </ul>
                 </li>
 
-                {% if session.get('rol') == 'admin' %}
+                <!-- ⭐ Opciones solo para admin y superadmin -->
+                {% if session.get('rol') in ['admin', 'superadmin'] %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('nuevo') }}">➕ Nuevo Oficio</a>
                 </li>
+                {% endif %}
 
+                {% if session.get('rol') in ['admin', 'superadmin'] %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('importar_excel') }}">📥 Importar Excel</a>
                 </li>
+                {% endif %}
 
+                {% if session.get('rol') == 'superadmin' %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('usuarios') }}">👥 Usuarios</a>
                 </li>
                 {% endif %}
 
+                <!-- ⭐ Exportaciones (todos los roles) -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_excel') }}">📤 Exportar Excel</a>
                 </li>
@@ -57,6 +65,7 @@
 
             </ul>
 
+            <!-- ⭐ Lado derecho -->
             <ul class="navbar-nav">
 
                 {% if session.get('rol') == 'admin' %}
