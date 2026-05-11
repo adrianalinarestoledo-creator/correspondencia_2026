@@ -6,59 +6,56 @@
 
 {% block contenido %}
 
-<h3>➕ Registrar nuevo oficio</h3>
+<h3 class="mb-4">➕ Nuevo Oficio</h3>
 
-<form method="POST" class="mt-4">
+<form method="POST" class="row g-3">
 
-    <div class="row">
-
-        <!-- ⭐ FOLIO AUTOMÁTICO -->
-        <div class="col-md-4 mb-3">
-            <label>Folio</label>
-            <input type="text" name="folio" class="form-control" value="{{ folio_generado }}" readonly>
-        </div>
-
-        <div class="col-md-4 mb-3">
-    <label>Número de oficio externo</label>
-    <input type="text" name="numero_oficio" class="form-control" required>
-</div>
-
-        <div class="col-md-4 mb-3">
-            <label>Fecha ingreso</label>
-            <input type="date" id="fecha" name="fecha" class="form-control" required>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <label>Hora</label>
-            <input type="time" name="hora" class="form-control">
-        </div>
+    <!-- ⭐ Número de oficio externo -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Número de oficio</label>
+        <input type="text" name="numero_oficio" class="form-control filtro-gris" required>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label>Número de expediente</label>
-            <input type="text" name="numero_expediente" class="form-control">
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <label>Quién lo emite</label>
-            <input type="text" name="quien_emite" class="form-control">
-        </div>
+    <!-- ⭐ Fecha -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Fecha</label>
+        <input type="date" name="fecha" id="fecha" class="form-control filtro-gris" required>
     </div>
 
-    <div class="mb-3">
-        <label>Con copia para</label>
-        <input type="text" name="con_copia_para" class="form-control">
+    <!-- ⭐ Hora -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Hora</label>
+        <input type="time" name="hora" class="form-control filtro-gris">
     </div>
 
-    <div class="mb-3">
-        <label>Anexos</label>
-        <input type="text" name="anexos" class="form-control">
+    <!-- ⭐ Número de expediente -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Número de expediente</label>
+        <input type="text" name="numero_expediente" class="form-control filtro-gris">
     </div>
 
-    <div class="mb-3">
-        <label>Gerencia a turnar</label>
-        <select name="gerencia_turnada" class="form-select" required>
+    <!-- ⭐ Quién emite -->
+    <div class="col-md-8">
+        <label class="form-label fw-bold text-secondary">Quién emite</label>
+        <input type="text" name="quien_emite" class="form-control filtro-gris">
+    </div>
+
+    <!-- ⭐ Con copia para -->
+    <div class="col-md-12">
+        <label class="form-label fw-bold text-secondary">Con copia para</label>
+        <input type="text" name="con_copia_para" class="form-control filtro-gris">
+    </div>
+
+    <!-- ⭐ Anexos -->
+    <div class="col-md-12">
+        <label class="form-label fw-bold text-secondary">Anexos</label>
+        <input type="text" name="anexos" class="form-control filtro-gris">
+    </div>
+
+    <!-- ⭐ Gerencia turnada -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Gerencia turnada</label>
+        <select name="gerencia_turnada" class="form-select filtro-gris" required>
             <option value="">Seleccione...</option>
             <option value="DG">DG</option>
             <option value="GAL">GAL</option>
@@ -69,63 +66,62 @@
         </select>
     </div>
 
-    <div class="mb-3">
-        <label>Asunto</label>
-        <textarea name="asunto" class="form-control" required></textarea>
+    <!-- ⭐ Prioridad -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Prioridad</label>
+        <select name="prioridad" id="prioridad" class="form-select filtro-gris" required>
+            <option value="Baja">Baja</option>
+            <option value="Media">Media</option>
+            <option value="Alta">Alta</option>
+            <option value="Urgente">Urgente</option>
+        </select>
     </div>
 
-    <div class="row">
-        <div class="col-md-4 mb-3">
-            <label>Prioridad</label>
-            <select id="prioridad" name="prioridad" class="form-select" required>
-                <option value="">Seleccione...</option>
-                <option value="Urgente">Urgente</option>
-                <option value="Alta">Alta</option>
-                <option value="Media">Media</option>
-                <option value="Baja">Baja</option>
-                <option value="No aplica">No aplica</option>
-            </select>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <label>Término (días)</label>
-            <input type="number" id="termino" name="termino" class="form-control" readonly>
-        </div>
-
-        <div class="col-md-4 mb-3">
-            <label>Fecha límite de atención</label>
-            <input type="date" id="fecha_limite" name="fecha_limite" class="form-control" readonly>
-        </div>
+    <!-- ⭐ Término -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Término (días)</label>
+        <input type="number" name="termino" id="termino" class="form-control filtro-gris" readonly>
     </div>
 
-    <div class="row">
-        <div class="col-md-6 mb-3">
-            <label>Director</label>
-            <input type="text" name="responsable1" class="form-control">
-        </div>
-
-        <div class="col-md-6 mb-3">
-            <label>Gerente</label>
-            <input type="text" name="responsable2" class="form-control">
-        </div>
+    <!-- ⭐ Fecha límite -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Fecha límite</label>
+        <input type="date" name="fecha_limite" id="fecha_limite" class="form-control filtro-gris" readonly>
     </div>
 
-    <div class="mb-3">
-        <label>NIS</label>
-        <input type="text" name="nis" class="form-control">
+    <!-- ⭐ Director -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Director</label>
+        <input type="text" name="responsable1" class="form-control filtro-gris">
     </div>
 
-    <!-- ⭐ BOTONES FINALES -->
-    <div class="mt-3 d-flex gap-2">
-        <button class="btn btn-success">Guardar</button>
+    <!-- ⭐ Gerente -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Gerente</label>
+        <input type="text" name="responsable2" class="form-control filtro-gris">
+    </div>
+
+    <!-- ⭐ NIS -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">NIS</label>
+        <input type="text" name="nis" class="form-control filtro-gris">
+    </div>
+
+    <!-- ⭐ Asunto -->
+    <div class="col-md-12">
+        <label class="form-label fw-bold text-secondary">Asunto</label>
+        <textarea name="asunto" class="form-control filtro-gris" rows="3" required></textarea>
+    </div>
+
+    <!-- ⭐ BOTONES -->
+    <div class="col-md-12 d-flex justify-content-end gap-2 mt-3">
         <a href="{{ url_for('lista') }}" class="btn btn-secondary">Cancelar</a>
+        <button class="btn btn-primary">Guardar</button>
     </div>
 
 </form>
 
-<!-- ============================
-     SCRIPT PARA CALCULAR FECHA LÍMITE
-============================= -->
+<!-- ⭐ SCRIPT: Cálculo de fecha límite -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -144,7 +140,6 @@ document.addEventListener("DOMContentLoaded", function () {
         else if (prioridad.value === "Alta") dias = 3;
         else if (prioridad.value === "Media") dias = 15;
         else if (prioridad.value === "Baja") dias = 30;
-        else dias = 0;
 
         termino.value = dias;
 
@@ -170,59 +165,5 @@ document.addEventListener("DOMContentLoaded", function () {
     fechaIngreso.addEventListener("change", calcularFechaLimite);
 });
 </script>
-
-<!-- ===============================
-     VALIDACIÓN VISUAL + CONFIRMACIÓN
-=============================== -->
-<script>
-document.querySelector("form").addEventListener("submit", function (e) {
-
-    let valido = true;
-    let campos = document.querySelectorAll("input[required], select[required], textarea[required]");
-
-    campos.forEach(campo => {
-        if (!campo.value.trim()) {
-            campo.classList.add("is-invalid");
-            campo.classList.remove("is-valid");
-            valido = false;
-        } else {
-            campo.classList.remove("is-invalid");
-            campo.classList.add("is-valid");
-        }
-    });
-
-    if (!valido) {
-        e.preventDefault();
-        alert("Por favor complete los campos obligatorios.");
-        return;
-    }
-
-    let confirmar = confirm("¿Deseas guardar este oficio?");
-    if (!confirmar) {
-        e.preventDefault();
-    }
-});
-
-document.querySelectorAll("input, select, textarea").forEach(campo => {
-    campo.addEventListener("input", function () {
-        if (campo.value.trim()) {
-            campo.classList.remove("is-invalid");
-            campo.classList.add("is-valid");
-        }
-    });
-});
-</script>
-
-<style>
-.is-invalid {
-    border: 2px solid #dc3545 !important;
-    background-color: #ffe6e6;
-}
-
-.is-valid {
-    border: 2px solid #198754 !important;
-    background-color: #e6ffed;
-}
-</style>
 
 {% endblock %}
