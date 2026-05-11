@@ -420,24 +420,52 @@ def responder(id):
     rol = session.get("rol")
     gerencia = session.get("gerencia")
 
-    # ⭐ Validación de permisos
-    if rol not in ["admin", "superadmin", "admin_limited"]:
-        if gerencia == "GAL":
-            if oficio.gerencia_turnada not in ["GAL", "GAL-Despacho"]:
-                return "Acceso no autorizado", 403
-        elif oficio.gerencia_turnada != gerencia:
-            return "Acceso no autorizado", 403
+    # ⭐ 1. Validación de permisos
+    # ADMINISTRADOR: puede editar cualquier oficio, incluso solucionado
+    if rol in ["admin", "superadmin"]:
+        tiene_permiso = True
 
-    # ⭐ Guardar respuesta
+    # GERENCIAS: solo pueden responder sus turnados
+    else:
+        # Caso especial GAL
+        if gerencia == "GAL":
+            tiene_permiso = oficio.gerencia_turnada in ["GAL", "GAL-Despacho"]
+        else:
+            tiene_permiso = (oficio.gerencia_turnada == gerencia)
+
+        # ⭐ Las gerencias NO pueden modificar un oficio solucionado
+        if oficio.estatus == "Solucionado":
+            return "Este oficio ya está finalizado y no puede modificarse por la gerencia.", 403
+
+    if not tiene_permiso:
+        return "Acceso no autorizado", 403
+
+    # ⭐ 2. Procesar respuesta
     if request.method == "POST":
 
-        oficio.estatus = request.form.get("estatus")
-        oficio.observaciones = request.form.get("observaciones")
-        oficio.fecha_atencion = request.form.get("fecha_atencion")
-        oficio.oficio_respuesta = request.form.get("oficio_respuesta")
-        oficio.fecha_acuse = request.form.get("fecha_acuse")
+        nuevo_estatus = request.form.get("estatus")
 
-        # ⭐ Calcular días de atención
+        # ⭐ 2.1 Si es gerencia, NO puede cambiar un solucionado
+        if rol not in ["admin", "superadmin"] and oficio.estatus == "Solucionado":
+            return "Este oficio ya está finalizado y no puede modificarse por la gerencia.", 403
+
+        # ⭐ 2.2 Guardar estatus
+        oficio.estatus = nuevo_estatus
+
+        # ⭐ 2.3 Guardar campos adicionales solo si aplica
+        if nuevo_estatus in ["En proceso", "En acuerdo"]:
+            oficio.observaciones = request.form.get("observaciones")
+            oficio.fecha_atencion = request.form.get("fecha_atencion")
+            oficio.oficio_respuesta = request.form.get("oficio_respuesta")
+            oficio.fecha_acuse = request.form.get("fecha_acuse")
+        else:
+            # Pendiente o Solucionado → guardar lo que venga
+            oficio.observaciones = request.form.get("observaciones")
+            oficio.fecha_atencion = request.form.get("fecha_atencion")
+            oficio.oficio_respuesta = request.form.get("oficio_respuesta")
+            oficio.fecha_acuse = request.form.get("fecha_acuse")
+
+        # ⭐ 2.4 Calcular días de atención
         if oficio.fecha and oficio.fecha_atencion:
             try:
                 f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
