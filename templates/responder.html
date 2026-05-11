@@ -15,41 +15,69 @@
     <strong>Prioridad:</strong> {{ oficio.prioridad }}
 </div>
 
-<h3>📨 Responder oficio</h3>
+<h3 class="mb-4">📨 Responder oficio</h3>
 
-<form method="POST" class="mt-4">
+<form method="POST" class="row g-3">
 
-    <div class="mb-3">
-        <label>Estatus</label>
-        <select name="estatus" class="form-control">
-            <option>En proceso</option>
-            <option>Solucionado</option>
-            <option>En Acuerdo</option>
+    <!-- ⭐ ESTATUS -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Estatus</label>
+        <select name="estatus" id="estatus" class="form-select" onchange="mostrarCampos()">
+            <option value="Pendiente" {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
+            <option value="En proceso" {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
+            <option value="En acuerdo" {% if oficio.estatus == "En acuerdo" %}selected{% endif %}>En acuerdo</option>
+            <option value="Solucionado" {% if oficio.estatus == "Solucionado" %}selected{% endif %}>Solucionado</option>
+            <option value="Atendido" {% if oficio.estatus == "Atendido" %}selected{% endif %}>Atendido</option>
         </select>
     </div>
 
-    <div class="mb-3">
-        <label>Observaciones</label>
-        <textarea name="observaciones" class="form-control"></textarea>
+    <!-- ⭐ CAMPOS ADICIONALES (solo proceso, acuerdo, solucionado) -->
+    <div id="campos_extra" style="display:none;">
+
+        <div class="col-md-12 mt-3">
+            <label class="form-label fw-bold text-secondary">Observaciones</label>
+            <textarea name="observaciones" class="form-control">{{ oficio.observaciones or "" }}</textarea>
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-secondary">Fecha de atención</label>
+            <input type="date" name="fecha_atencion" class="form-control" value="{{ oficio.fecha_atencion }}">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-secondary">Oficio de respuesta</label>
+            <input type="text" name="oficio_respuesta" class="form-control" value="{{ oficio.oficio_respuesta }}">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-secondary">Fecha de acuse</label>
+            <input type="date" name="fecha_acuse" class="form-control" value="{{ oficio.fecha_acuse }}">
+        </div>
+
     </div>
 
-    <div class="mb-3">
-        <label>Fecha de atención</label>
-        <input type="date" name="fecha_atencion" class="form-control">
+    <!-- ⭐ BOTÓN -->
+    <div class="col-md-12 mt-3">
+        <button class="btn btn-primary">Guardar respuesta</button>
     </div>
-
-    <div class="mb-3">
-        <label>Oficio de respuesta</label>
-        <input type="text" name="oficio_respuesta" class="form-control">
-    </div>
-
-    <div class="mb-3">
-        <label>Fecha de acuse</label>
-        <input type="date" name="fecha_acuse" class="form-control">
-    </div>
-
-    <button class="btn btn-primary">Guardar respuesta</button>
 
 </form>
+
+<!-- ⭐ SCRIPT PARA MOSTRAR / OCULTAR CAMPOS -->
+<script>
+function mostrarCampos() {
+    let estatus = document.getElementById("estatus").value;
+    let extra = document.getElementById("campos_extra");
+
+    if (estatus === "En proceso" || estatus === "En acuerdo" || estatus === "Solucionado") {
+        extra.style.display = "block";
+    } else {
+        extra.style.display = "none";
+    }
+}
+
+// ⭐ Ejecutar al cargar la página (para editar respuestas)
+document.addEventListener("DOMContentLoaded", mostrarCampos);
+</script>
 
 {% endblock %}
