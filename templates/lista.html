@@ -10,7 +10,7 @@
 
 <form method="GET" class="row g-3 mb-4">
 
-    <!-- ⭐ BUSCADOR GENERAL (folio, NIS, número de oficio) -->
+    <!-- ⭐ BUSCADOR GENERAL -->
     <div class="col-md-3">
         <label class="form-label fw-bold text-secondary">Buscar</label>
         <input type="text" name="q" class="form-control filtro-gris"
@@ -35,14 +35,13 @@
     <!-- ⭐ FILTRO POR ESTATUS -->
     <div class="col-md-3">
         <label class="form-label fw-bold text-secondary">Estatus</label>
-       <select name="estatus" class="form-select filtro-gris">
-         <option value="">Todos</option>
-         <option value="Pendiente">Pendiente</option>
-         <option value="En proceso">En proceso</option>
-         <option value="En acuerdo">En acuerdo</option>
-        <option value="Solucionado">Solucionado</option>
-    </select>
-
+        <select name="estatus" class="form-select filtro-gris">
+            <option value="">Todos</option>
+            <option value="Pendiente">Pendiente</option>
+            <option value="En proceso">En proceso</option>
+            <option value="En acuerdo">En acuerdo</option>
+            <option value="Solucionado">Solucionado</option>
+        </select>
     </div>
 
     <!-- ⭐ FILTRO POR FECHA -->
@@ -103,16 +102,16 @@
                 {% endif %}
             </td>
 
-            <!-- ⭐ ESTATUS -->
-             <td>
+            <!-- ⭐ ESTATUS COMPLETO -->
+            <td>
                 {% if o.estatus == "Pendiente" %}
-                <span class="badge bg-danger">Pendiente</span>
+                    <span class="badge bg-danger">Pendiente</span>
 
                 {% elif o.estatus == "En proceso" %}
-                <span class="badge bg-warning text-dark">En proceso</span>
+                    <span class="badge bg-warning text-dark">En proceso</span>
 
                 {% elif o.estatus == "En acuerdo" %}
-                <span class="badge bg-info text-dark">En acuerdo</span>
+                    <span class="badge bg-info text-dark">En acuerdo</span>
 
                 {% elif o.estatus == "Solucionado" %}
                     <span class="badge bg-success">Solucionado</span>
@@ -122,11 +121,15 @@
                 {% endif %}
             </td>
 
-
             <td>{{ o.observaciones }}</td>
 
+            <!-- ⭐ ACCIONES -->
             <td>
-                <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">Responder</a>
+                {% if o.estatus == "Solucionado" %}
+                    <span class="badge bg-secondary">Finalizado</span>
+                {% else %}
+                    <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">Responder</a>
+                {% endif %}
             </td>
 
         </tr>
