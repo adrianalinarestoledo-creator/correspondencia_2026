@@ -364,6 +364,10 @@ def lista():
     estatus_filtro = request.args.get("estatus", "")
 
     consulta = Oficio.query
+   anio = request.args.get("anio")
+
+if anio:
+    query = query.filter(Oficio.fecha.like(f"{anio}%"))
 
     # Si no es admin, solo ve su gerencia
     if session.get("rol") != "admin":
