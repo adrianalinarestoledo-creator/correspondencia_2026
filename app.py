@@ -615,7 +615,6 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-    
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
@@ -727,7 +726,7 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-
+  
 # --------------------------
 #   FUNCIÓN PARA GENERAR FOLIO
 # --------------------------
