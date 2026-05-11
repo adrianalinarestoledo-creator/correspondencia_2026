@@ -189,7 +189,7 @@ def generar_folio():
         # Extraer la parte numérica final
         consecutivo = int(ultimo.numero.split("-")[-1])
         nuevo = consecutivo + 1
-        return f"SOAPAP-2026-{nuevo:05d}"
+        return f"SOAPAP-{nuevo:05d}"
     except:
         # Si el formato está mal, reiniciar desde 1
         return "SOAPAP-2026-00001"
