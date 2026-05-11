@@ -558,7 +558,7 @@ def exportar_pdf():
         download_name="oficios.pdf",
         mimetype="application/pdf"
     )
-    
+
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
@@ -675,103 +675,6 @@ def generar_folio():
     nuevo = consecutivo + 1
     return f"SOAPAP-2026-{nuevo:04d}"
     
-# --------------------------
-#   CONFIRMAR IMPORTACIÓN
-# --------------------------
-from openpyxl import load_workbook
-
-@app.route("/confirmar_importacion", methods=["POST"])
-def confirmar_importacion():
-
-    file_path = session.get("excel_temp_file")
-    if not file_path:
-        flash("No se encontró archivo para importar", "danger")
-        return redirect(url_for("importar_excel"))
-
-    # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
-    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
-    db.session.commit()
-
-    # ⭐ CARGAR EXCEL SIN PANDAS (STREAMING)
-    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
-    ws = wb.active
-
-    # Obtener encabezados
-    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
-
-    # Convertir encabezados a índice
-    idx = {h: i for i, h in enumerate(headers)}
-
-    # Procesar fila por fila SIN cargar todo en memoria
-    for row in ws.iter_rows(min_row=2):
-
-        folio = row[idx["FOLIO"]].value
-        if not folio:
-            continue
-
-        oficio = Oficio(
-            numero = folio,
-            fecha = row[idx["FECHA INGRESO"]].value,
-            hora = row[idx["HORA"]].value,
-            asunto = row[idx["ASUNTO"]].value,
-            quien_emite = row[idx["QUIEN LO EMITE"]].value,
-            gerencia_turnada = row[idx["GERENCIA"]].value,
-            prioridad = row[idx["PRIORIDAD"]].value,
-            numero_oficio = row[idx["NUMERO DE OFICIO"]].value
-        )
-
-        # ⭐ OBSERVACIONES
-        obs = row[idx["OBSERVACIONES"]].value
-        if obs:
-            oficio.observaciones = str(obs).strip()
-
-        # ⭐ FECHA DE ATENCIÓN
-        f_at = row[idx["FECHA DE ATENCIÓN"]].value
-        if f_at:
-            try:
-                oficio.fecha_atencion = f_at.strftime("%Y-%m-%d")
-            except:
-                oficio.fecha_atencion = None
-
-        # ⭐ OFICIO DE RESPUESTA
-        of_resp = row[idx["OFICIO DE RESPUESTA"]].value
-        if of_resp:
-            oficio.oficio_respuesta = str(of_resp).strip()
-
-        # ⭐ FECHA ACUSE DE RESPUESTA
-        f_acuse = row[idx["FECHA ACUSE DE RESPUESTA"]].value
-        if f_acuse:
-            try:
-                oficio.fecha_acuse = f_acuse.strftime("%Y-%m-%d")
-            except:
-                oficio.fecha_acuse = None
-
-        # ⭐ ESTATUS
-        estatus_excel = str(row[idx["ESTATUS"]].value or "").strip().lower()
-
-        if estatus_excel == "finalizado":
-            oficio.estatus = "Solucionado"
-        elif estatus_excel in ["pendiente", "en proceso", "en acuerdo", "solucionado"]:
-            oficio.estatus = estatus_excel.capitalize()
-        else:
-            oficio.estatus = "Pendiente"
-
-        # ⭐ CÁLCULO DE DÍAS DE ATENCIÓN
-        if oficio.fecha and oficio.fecha_atencion:
-            try:
-                f1 = datetime.strptime(str(oficio.fecha), "%Y-%m-%d")
-                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
-                oficio.dias_atencion = (f2 - f1).days
-            except:
-                oficio.dias_atencion = None
-
-        db.session.add(oficio)
-
-    db.session.commit()
-
-    flash("Importación completada correctamente", "success")
-    return redirect(url_for("lista"))
-
 # --------------------------
 #   INICIO
 # --------------------------
