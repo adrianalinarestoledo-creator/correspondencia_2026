@@ -558,13 +558,14 @@ def exportar_pdf():
         download_name="oficios.pdf",
         mimetype="application/pdf"
     )
+    
 # --------------------------
-#   IMPORTAR EXCEL
+#   IMPORTAR EXCEL (STREAMING)
 # --------------------------
 
-import pandas as pd
 import uuid
 import os
+from openpyxl import load_workbook
 
 @app.route("/importar_excel", methods=["GET", "POST"])
 def importar_excel():
@@ -585,23 +586,32 @@ def importar_excel():
         os.makedirs("uploads", exist_ok=True)
         archivo.save(temp_path)
 
-        # ⭐ Leer Excel SOLO para vista previa
-        try:
-            df = pd.read_excel(temp_path, header=1)
-        except Exception as e:
-            return f"Error al leer el archivo: {e}"
+        # ⭐ Cargar solo para vista previa (streaming)
+        wb = load_workbook(filename=temp_path, read_only=True, data_only=True)
+        ws = wb.active
 
-        df.columns = df.columns.str.strip().str.upper()
-        df = df.fillna("").replace("NaT", "")
+        # Encabezados reales en fila 2
+        raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
+        headers = [str(h).strip().upper() if h else "" for h in raw_headers]
 
+        # Vista previa: primeras 20 filas
+        preview = []
+        for i, row in enumerate(ws.iter_rows(min_row=3), start=1):
+            if i > 20:
+                break
+
+            fila = {}
+            for h, cell in zip(headers, row):
+                fila[h] = cell.value
+            preview.append(fila)
+
+        # Guardar ruta del archivo para confirmar_importacion
         session["excel_temp_file"] = temp_path
-
-        preview = df.head(20).to_dict(orient="records")
 
         return render_template(
             "importar_excel_preview.html",
             preview=preview,
-            columnas=df.columns
+            columnas=headers
         )
 
     return render_template("importar_excel.html")
