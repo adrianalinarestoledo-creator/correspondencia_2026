@@ -104,15 +104,24 @@
             </td>
 
             <!-- ⭐ ESTATUS -->
-            <td>
+             <td>
                 {% if o.estatus == "Pendiente" %}
-                    <span class="badge bg-danger">Pendiente</span>
-                {% elif o.estatus == "Atendido" %}
-                    <span class="badge bg-success">Atendido</span>
+                <span class="badge bg-danger">Pendiente</span>
+
+                {% elif o.estatus == "En proceso" %}
+                <span class="badge bg-warning text-dark">En proceso</span>
+
+                {% elif o.estatus == "En acuerdo" %}
+                <span class="badge bg-info text-dark">En acuerdo</span>
+
+                {% elif o.estatus == "Solucionado" %}
+                    <span class="badge bg-success">Solucionado</span>
+
                 {% else %}
                     <span class="badge bg-secondary">N/A</span>
                 {% endif %}
             </td>
+
 
             <td>{{ o.observaciones }}</td>
 
