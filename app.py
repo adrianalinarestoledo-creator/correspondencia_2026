@@ -409,27 +409,48 @@ def lista():
     return render_template("lista.html", oficios=oficios)
 
 # --------------------------
-#   RESPUESTA DE GERENCIAS
+#   RESPONDER OFICIO
 # --------------------------
-
-@app.route('/responder/<int:id>', methods=['GET', 'POST'])
+@app.route("/responder/<int:id>", methods=["GET", "POST"])
 def responder(id):
+    # Obtener oficio
     oficio = Oficio.query.get_or_404(id)
 
-    if request.method == 'POST':
+    # Solo gerencias pueden responder
+    rol = session.get("rol")
+    gerencia = session.get("gerencia")
 
-        # ⭐ ESTA LÍNEA ES LA QUE TE FALTABA
-        oficio.estatus = request.form.get('estatus')
+    if rol not in ["admin", "superadmin", "admin_limited"]:
+        # Validar que la gerencia coincida
+        if gerencia == "GAL":
+            if oficio.gerencia_turnada not in ["GAL", "GAL-Despacho"]:
+                return "Acceso no autorizado", 403
+        elif oficio.gerencia_turnada != gerencia:
+            return "Acceso no autorizado", 403
 
-        oficio.observaciones = request.form.get('observaciones')
-        oficio.fecha_atencion = request.form.get('fecha_atencion')
-        oficio.oficio_respuesta = request.form.get('oficio_respuesta')
-        oficio.fecha_acuse = request.form.get('fecha_acuse')
+    # Procesar respuesta
+    if request.method == "POST":
+
+        oficio.estatus = request.form.get("estatus")
+        oficio.observaciones = request.form.get("observaciones")
+        oficio.fecha_atencion = request.form.get("fecha_atencion")
+        oficio.oficio_respuesta = request.form.get("oficio_respuesta")
+        oficio.fecha_acuse = request.form.get("fecha_acuse")
+
+        # ⭐ Calcular días de atención si existe fecha de atención
+        if oficio.fecha and oficio.fecha_atencion:
+            try:
+                f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
+                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
+                oficio.dias_atencion = (f2 - f1).days
+            except:
+                oficio.dias_atencion = None
 
         db.session.commit()
-        return redirect(url_for('lista'))
+        flash("Respuesta guardada correctamente", "success")
+        return redirect(url_for("lista"))
 
-    return render_template('responder.html', oficio=oficio)
+    return render_template("responder.html", oficio=oficio)
 
 # --------------------------
 #   EXPORTAR A EXCEL
