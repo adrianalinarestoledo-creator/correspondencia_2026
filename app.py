@@ -626,6 +626,7 @@ def generar_folio():
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
+from openpyxl import load_workbook
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -635,64 +636,66 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    # ⭐ LEER EXCEL OPTIMIZADO
-    df = pd.read_excel(
-        file_path,
-        engine="openpyxl",
-        dtype=str,
-        usecols=[
-            "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
-            "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO",
-            "OBSERVACIONES", "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA",
-            "FECHA ACUSE DE RESPUESTA", "ESTATUS"
-        ]
-    )
-
     # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
-    for index, row in df.iterrows():
+    # ⭐ CARGAR EXCEL SIN PANDAS (STREAMING)
+    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
+    ws = wb.active
 
-        folio = row.get("FOLIO")
+    # Obtener encabezados
+    headers = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1))]
+
+    # Convertir encabezados a índice
+    idx = {h: i for i, h in enumerate(headers)}
+
+    # Procesar fila por fila SIN cargar todo en memoria
+    for row in ws.iter_rows(min_row=2):
+
+        folio = row[idx["FOLIO"]].value
         if not folio:
             continue
 
         oficio = Oficio(
-            numero=folio,
-            fecha=row.get("FECHA INGRESO"),
-            hora=row.get("HORA"),
-            asunto=row.get("ASUNTO"),
-            quien_emite=row.get("QUIEN LO EMITE"),
-            gerencia_turnada=row.get("GERENCIA"),
-            prioridad=row.get("PRIORIDAD"),
-            numero_oficio=row.get("NUMERO DE OFICIO")
+            numero = folio,
+            fecha = row[idx["FECHA INGRESO"]].value,
+            hora = row[idx["HORA"]].value,
+            asunto = row[idx["ASUNTO"]].value,
+            quien_emite = row[idx["QUIEN LO EMITE"]].value,
+            gerencia_turnada = row[idx["GERENCIA"]].value,
+            prioridad = row[idx["PRIORIDAD"]].value,
+            numero_oficio = row[idx["NUMERO DE OFICIO"]].value
         )
 
         # ⭐ OBSERVACIONES
-        if pd.notna(row.get("OBSERVACIONES")):
-            oficio.observaciones = str(row["OBSERVACIONES"]).strip()
+        obs = row[idx["OBSERVACIONES"]].value
+        if obs:
+            oficio.observaciones = str(obs).strip()
 
         # ⭐ FECHA DE ATENCIÓN
-        if pd.notna(row.get("FECHA DE ATENCIÓN")):
+        f_at = row[idx["FECHA DE ATENCIÓN"]].value
+        if f_at:
             try:
-                oficio.fecha_atencion = row["FECHA DE ATENCIÓN"].strftime("%Y-%m-%d")
+                oficio.fecha_atencion = f_at.strftime("%Y-%m-%d")
             except:
                 oficio.fecha_atencion = None
 
         # ⭐ OFICIO DE RESPUESTA
-        if pd.notna(row.get("OFICIO DE RESPUESTA")):
-            oficio.oficio_respuesta = str(row["OFICIO DE RESPUESTA"]).strip()
+        of_resp = row[idx["OFICIO DE RESPUESTA"]].value
+        if of_resp:
+            oficio.oficio_respuesta = str(of_resp).strip()
 
         # ⭐ FECHA ACUSE DE RESPUESTA
-        if pd.notna(row.get("FECHA ACUSE DE RESPUESTA")):
+        f_acuse = row[idx["FECHA ACUSE DE RESPUESTA"]].value
+        if f_acuse:
             try:
-                oficio.fecha_acuse = row["FECHA ACUSE DE RESPUESTA"].strftime("%Y-%m-%d")
+                oficio.fecha_acuse = f_acuse.strftime("%Y-%m-%d")
             except:
                 oficio.fecha_acuse = None
 
-        # ⭐ ESTATUS (FINALIZADO → SOLUCIONADO)
-        estatus_excel = str(row.get("ESTATUS", "")).strip().lower()
+        # ⭐ ESTATUS
+        estatus_excel = str(row[idx["ESTATUS"]].value or "").strip().lower()
 
         if estatus_excel == "finalizado":
             oficio.estatus = "Solucionado"
@@ -704,7 +707,7 @@ def confirmar_importacion():
         # ⭐ CÁLCULO DE DÍAS DE ATENCIÓN
         if oficio.fecha and oficio.fecha_atencion:
             try:
-                f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
+                f1 = datetime.strptime(str(oficio.fecha), "%Y-%m-%d")
                 f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
                 oficio.dias_atencion = (f2 - f1).days
             except:
