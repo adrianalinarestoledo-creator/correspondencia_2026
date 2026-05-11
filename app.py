@@ -558,6 +558,53 @@ def exportar_pdf():
         download_name="oficios.pdf",
         mimetype="application/pdf"
     )
+# --------------------------
+#   IMPORTAR EXCEL
+# --------------------------
+
+import pandas as pd
+import uuid
+import os
+
+@app.route("/importar_excel", methods=["GET", "POST"])
+def importar_excel():
+    if session.get("rol") != "admin":
+        return "Acceso restringido"
+
+    if request.method == "POST":
+        archivo = request.files.get("archivo")
+
+        if not archivo:
+            return "No se subió archivo"
+
+        # ⭐ Guardar archivo Excel real (.xlsx)
+        temp_id = str(uuid.uuid4())
+        filename = f"excel_{temp_id}.xlsx"
+        temp_path = os.path.join("uploads", filename)
+
+        os.makedirs("uploads", exist_ok=True)
+        archivo.save(temp_path)
+
+        # ⭐ Leer Excel SOLO para vista previa
+        try:
+            df = pd.read_excel(temp_path, header=1)
+        except Exception as e:
+            return f"Error al leer el archivo: {e}"
+
+        df.columns = df.columns.str.strip().str.upper()
+        df = df.fillna("").replace("NaT", "")
+
+        session["excel_temp_file"] = temp_path
+
+        preview = df.head(20).to_dict(orient="records")
+
+        return render_template(
+            "importar_excel_preview.html",
+            preview=preview,
+            columnas=df.columns
+        )
+
+    return render_template("importar_excel.html")
 
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
@@ -576,18 +623,14 @@ def confirmar_importacion():
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
-    # ⭐ CARGAR EXCEL SIN PANDAS (STREAMING)
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    # ⭐ ENCABEZADOS ESTÁN EN LA FILA 2 (porque importar_excel usa header=1)
+    # ⭐ Encabezados reales en fila 2
     headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
-
-    # Convertir encabezados a índice
     idx = {h: i for i, h in enumerate(headers)}
 
-    # ⭐ Procesar fila por fila SIN cargar todo en memoria
-    # Los datos empiezan en la fila 3
+    # ⭐ Datos reales desde fila 3
     for row in ws.iter_rows(min_row=3):
 
         folio = row[idx["FOLIO"]].value
@@ -605,12 +648,10 @@ def confirmar_importacion():
             numero_oficio = row[idx["NUMERO DE OFICIO"]].value
         )
 
-        # ⭐ OBSERVACIONES
         obs = row[idx["OBSERVACIONES"]].value
         if obs:
             oficio.observaciones = str(obs).strip()
 
-        # ⭐ FECHA DE ATENCIÓN
         f_at = row[idx["FECHA DE ATENCIÓN"]].value
         if f_at:
             try:
@@ -618,12 +659,10 @@ def confirmar_importacion():
             except:
                 oficio.fecha_atencion = None
 
-        # ⭐ OFICIO DE RESPUESTA
         of_resp = row[idx["OFICIO DE RESPUESTA"]].value
         if of_resp:
             oficio.oficio_respuesta = str(of_resp).strip()
 
-        # ⭐ FECHA ACUSE DE RESPUESTA
         f_acuse = row[idx["FECHA ACUSE DE RESPUESTA"]].value
         if f_acuse:
             try:
@@ -631,7 +670,6 @@ def confirmar_importacion():
             except:
                 oficio.fecha_acuse = None
 
-        # ⭐ ESTATUS
         estatus_excel = str(row[idx["ESTATUS"]].value or "").strip().lower()
 
         if estatus_excel == "finalizado":
@@ -641,7 +679,6 @@ def confirmar_importacion():
         else:
             oficio.estatus = "Pendiente"
 
-        # ⭐ CÁLCULO DE DÍAS DE ATENCIÓN
         if oficio.fecha and oficio.fecha_atencion:
             try:
                 f1 = datetime.strptime(str(oficio.fecha), "%Y-%m-%d")
@@ -656,6 +693,7 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
+
 
 # --------------------------
 #   FUNCIÓN PARA GENERAR FOLIO
