@@ -2,7 +2,7 @@
     <div class="container-fluid">
 
         <a class="navbar-brand fw-bold text-primary" href="{{ url_for('lista') }}">
-            📁 Correspondencia 2026
+            📁 Correspondencia {{ session.get('anio') }}
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav">
@@ -15,6 +15,22 @@
 
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('lista') }}">📄 Lista</a>
+                </li>
+
+                <!-- ⭐ MENÚ DE AÑOS AUTOMÁTICO -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                        Años
+                    </a>
+                    <ul class="dropdown-menu">
+                        {% for y in range(2026, session.get('anio') + 1) %}
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('lista', anio=y) }}">
+                                    Correspondencia {{ y }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </li>
 
                 {% if session.get('rol') == 'admin' %}
