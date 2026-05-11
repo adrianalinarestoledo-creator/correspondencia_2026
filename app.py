@@ -622,8 +622,7 @@ def generar_folio():
 
     nuevo = consecutivo + 1
     return f"SOAPAP-2026-{nuevo:04d}"
-
-
+    
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
@@ -636,19 +635,21 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-   df = pd.read_excel(
-    file_path,
-    engine="openpyxl",
-    dtype=str,
-    usecols=[
-        "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
-        "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO",
-        "OBSERVACIONES", "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA",
-        "FECHA ACUSE DE RESPUESTA", "ESTATUS"
-    ]
-)
+    # ⭐ LEER EXCEL OPTIMIZADO
+    df = pd.read_excel(
+        file_path,
+        engine="openpyxl",
+        dtype=str,
+        usecols=[
+            "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
+            "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO",
+            "OBSERVACIONES", "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA",
+            "FECHA ACUSE DE RESPUESTA", "ESTATUS"
+        ]
+    )
+
     # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
-   db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
+    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
     for index, row in df.iterrows():
@@ -658,33 +659,33 @@ def confirmar_importacion():
             continue
 
         oficio = Oficio(
-            numero = folio,
-            fecha = row.get("FECHA INGRESO"),
-            hora = row.get("HORA"),
-            asunto = row.get("ASUNTO"),
-            quien_emite = row.get("QUIEN LO EMITE"),
-            gerencia_turnada = row.get("GERENCIA"),
-            prioridad = row.get("PRIORIDAD"),
-            numero_oficio = row.get("NUMERO DE OFICIO")
+            numero=folio,
+            fecha=row.get("FECHA INGRESO"),
+            hora=row.get("HORA"),
+            asunto=row.get("ASUNTO"),
+            quien_emite=row.get("QUIEN LO EMITE"),
+            gerencia_turnada=row.get("GERENCIA"),
+            prioridad=row.get("PRIORIDAD"),
+            numero_oficio=row.get("NUMERO DE OFICIO")
         )
 
         # ⭐ OBSERVACIONES
-        if "OBSERVACIONES" in row and pd.notna(row["OBSERVACIONES"]):
+        if pd.notna(row.get("OBSERVACIONES")):
             oficio.observaciones = str(row["OBSERVACIONES"]).strip()
 
         # ⭐ FECHA DE ATENCIÓN
-        if "FECHA DE ATENCIÓN" in row and pd.notna(row["FECHA DE ATENCIÓN"]):
+        if pd.notna(row.get("FECHA DE ATENCIÓN")):
             try:
                 oficio.fecha_atencion = row["FECHA DE ATENCIÓN"].strftime("%Y-%m-%d")
             except:
                 oficio.fecha_atencion = None
 
         # ⭐ OFICIO DE RESPUESTA
-        if "OFICIO DE RESPUESTA" in row and pd.notna(row["OFICIO DE RESPUESTA"]):
+        if pd.notna(row.get("OFICIO DE RESPUESTA")):
             oficio.oficio_respuesta = str(row["OFICIO DE RESPUESTA"]).strip()
 
         # ⭐ FECHA ACUSE DE RESPUESTA
-        if "FECHA ACUSE DE RESPUESTA" in row and pd.notna(row["FECHA ACUSE DE RESPUESTA"]):
+        if pd.notna(row.get("FECHA ACUSE DE RESPUESTA")):
             try:
                 oficio.fecha_acuse = row["FECHA ACUSE DE RESPUESTA"].strftime("%Y-%m-%d")
             except:
@@ -715,7 +716,6 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-
 
 # --------------------------
 #   INICIO
