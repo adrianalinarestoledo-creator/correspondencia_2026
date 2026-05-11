@@ -153,8 +153,9 @@ with app.app_context():
 # --------------------------
 #   LOGIN / LOGOUT
 # --------------------------
+from datetime import datetime
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         usuario = request.form["usuario"]
@@ -162,12 +163,18 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-        if user and user.check_password(password) and user.activo:
-            session["gerencia"] = user.usuario
+        if user and check_password_hash(user.password_hash, password):
+
+            session["usuario"] = user.usuario
             session["rol"] = user.rol
+            session["gerencia"] = user.gerencia
+
+            # ⭐ Año automático
+            session["anio"] = datetime.now().year
+
             return redirect(url_for("lista"))
 
-        return "Usuario o contraseña incorrectos, o usuario bloqueado."
+        flash("Usuario o contraseña incorrectos")
 
     return render_template("login.html")
 
@@ -183,7 +190,7 @@ def generar_folio():
     ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
 
     if not ultimo or not ultimo.numero:
-        return "SOAPAP-2026-00001"
+        return "SOAPAP-00001"
 
     try:
         # Extraer la parte numérica final
@@ -192,7 +199,7 @@ def generar_folio():
         return f"SOAPAP-{nuevo:05d}"
     except:
         # Si el formato está mal, reiniciar desde 1
-        return "SOAPAP-2026-00001"
+        return "SOAPAP-00001"
 
 # --------------------------
 #   PROTEGER RUTAS
@@ -353,43 +360,37 @@ def nuevo():
 # --------------------------
 #   LISTA DE OFICIOS
 # --------------------------
-
 @app.route("/lista")
 def lista():
-    page = request.args.get("page", 1, type=int)
-
-    q = request.args.get("q", "")
-    gerencia_filtro = request.args.get("gerencia", "")
-    estatus_filtro = request.args.get("estatus", "")
-    anio = request.args.get("anio", "")
+    anio = session.get("anio")
+    rol = session.get("rol")
+    gerencia = session.get("gerencia")
 
     consulta = Oficio.query
 
-    # ⭐ Filtro por año (2026–2036)
+    # ⭐ Filtrar por año automáticamente
     if anio:
         consulta = consulta.filter(Oficio.fecha.like(f"{anio}%"))
 
-    # ⭐ Si no es admin, solo ve su gerencia
-    if session.get("rol") != "admin":
-        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
+    # ⭐ Permisos por rol
+    if rol not in ["admin", "superadmin", "admin_limited"]:
 
-    # ⭐ Filtro por texto
-    if q:
-        consulta = consulta.filter(
-            (Oficio.asunto.ilike(f"%{q}%")) |
-            (Oficio.numero.ilike(f"%{q}%"))
-        )
+        # GAL ve GAL + GAL-Despacho
+        if gerencia == "GAL":
+            consulta = consulta.filter(
+                (Oficio.gerencia_turnada == "GAL") |
+                (Oficio.gerencia_turnada == "GAL-Despacho")
+            )
 
-    # ⭐ Filtro por gerencia
-    if gerencia_filtro:
-        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+        # GAL-Despacho solo lo suyo
+        elif gerencia == "GAL-Despacho":
+            consulta = consulta.filter_by(gerencia_turnada="GAL-Despacho")
 
-    # ⭐ Filtro por estatus
-    if estatus_filtro:
-        consulta = consulta.filter_by(estatus=estatus_filtro)
+        # Otras gerencias solo lo suyo
+        else:
+            consulta = consulta.filter_by(gerencia_turnada=gerencia)
 
-    # ⭐ Paginación real
-    oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
+    oficios = consulta.order_by(Oficio.id.desc()).all()
 
     return render_template("lista.html", oficios=oficios)
 
