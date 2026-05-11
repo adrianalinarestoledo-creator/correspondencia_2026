@@ -350,7 +350,6 @@ def nuevo():
 
     return render_template("nuevo.html")
 
-
 # --------------------------
 #   LISTA DE OFICIOS
 # --------------------------
@@ -362,37 +361,37 @@ def lista():
     q = request.args.get("q", "")
     gerencia_filtro = request.args.get("gerencia", "")
     estatus_filtro = request.args.get("estatus", "")
+    anio = request.args.get("anio", "")
 
     consulta = Oficio.query
-   anio = request.args.get("anio")
 
-if anio:
-    query = query.filter(Oficio.fecha.like(f"{anio}%"))
+    # ⭐ Filtro por año (2026–2036)
+    if anio:
+        consulta = consulta.filter(Oficio.fecha.like(f"{anio}%"))
 
-    # Si no es admin, solo ve su gerencia
+    # ⭐ Si no es admin, solo ve su gerencia
     if session.get("rol") != "admin":
         consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
 
-    # Filtro por texto
+    # ⭐ Filtro por texto
     if q:
         consulta = consulta.filter(
             (Oficio.asunto.ilike(f"%{q}%")) |
             (Oficio.numero.ilike(f"%{q}%"))
         )
 
-    # Filtro por gerencia
+    # ⭐ Filtro por gerencia
     if gerencia_filtro:
         consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
 
-    # Filtro por estatus
+    # ⭐ Filtro por estatus
     if estatus_filtro:
         consulta = consulta.filter_by(estatus=estatus_filtro)
 
-    # PAGINACIÓN REAL
+    # ⭐ Paginación real
     oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
 
     return render_template("lista.html", oficios=oficios)
-
 
 # --------------------------
 #   RESPUESTA DE GERENCIAS
