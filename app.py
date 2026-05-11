@@ -44,7 +44,6 @@ def dias_habiles(fecha_inicio, fecha_fin):
             dias += 1
         actual += timedelta(days=1)
     return dias
-
 # --------------------------
 #   MODELOS
 # --------------------------
@@ -53,7 +52,10 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    rol = db.Column(db.String(50), nullable=False)  # admin o gerencia
+    rol = db.Column(db.String(50), nullable=False)  # admin, admin_limited, gerencia
+
+    # ⭐ Campo que faltaba en tu modelo (ya existe en PostgreSQL)
+    gerencia = db.Column(db.String(50))
 
     # Controles empresariales
     activo = db.Column(db.Boolean, default=True)
@@ -77,8 +79,10 @@ class Usuario(db.Model):
 
 class Oficio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(50))  # Folio SOAPAP
-    numero_oficio = db.Column(db.String(100))  # ⭐ Número de oficio externo
+
+    # Datos del oficio
+    numero = db.Column(db.String(50))            # Folio SOAPAP
+    numero_oficio = db.Column(db.String(100))    # Número de oficio externo
     fecha = db.Column(db.String(20))
     hora = db.Column(db.String(20))
     numero_expediente = db.Column(db.String(100))
@@ -94,7 +98,7 @@ class Oficio(db.Model):
     responsable2 = db.Column(db.String(200))
     nis = db.Column(db.String(50))
 
-    # Campos de respuesta de gerencias
+    # Respuesta de gerencias
     estatus = db.Column(db.String(50))
     observaciones = db.Column(db.Text)
     fecha_atencion = db.Column(db.String(20))
@@ -103,6 +107,7 @@ class Oficio(db.Model):
 
     # Campo calculado
     dias_atencion = db.Column(db.Integer)
+
 
 # --------------------------
 #   VALIDACIÓN DE PASSWORD
