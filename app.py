@@ -54,7 +54,7 @@ class Usuario(db.Model):
     password_hash = db.Column(db.String(200), nullable=False)
     rol = db.Column(db.String(50), nullable=False)  # admin, admin_limited, gerencia
 
-    # ⭐ Campo que faltaba en tu modelo (ya existe en PostgreSQL)
+    # ⭐ Campo que existía en PostgreSQL pero faltaba en tu modelo
     gerencia = db.Column(db.String(50))
 
     # Controles empresariales
@@ -81,9 +81,9 @@ class Oficio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
     # Datos del oficio
-    numero = db.Column(db.String(50))            # Folio SOAPAP
-    numero_oficio = db.Column(db.String(100))    # Número de oficio externo
-    fecha = db.Column(db.String(20))
+    numero = db.Column(db.String(50))            # Folio SOAPAP-00001
+    numero_oficio = db.Column(db.String(100))
+    fecha = db.Column(db.String(20))             # YYYY-MM-DD
     hora = db.Column(db.String(20))
     numero_expediente = db.Column(db.String(100))
     quien_emite = db.Column(db.String(200))
@@ -107,7 +107,6 @@ class Oficio(db.Model):
 
     # Campo calculado
     dias_atencion = db.Column(db.Integer)
-
 
 # --------------------------
 #   VALIDACIÓN DE PASSWORD
@@ -159,7 +158,6 @@ with app.app_context():
 #   LOGIN / LOGOUT
 # --------------------------
 from datetime import datetime
-from flask import session, render_template, request, redirect, url_for, flash
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -169,18 +167,15 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-        # Validación de usuario
         if user and user.check_password(password) and user.activo:
 
-            # Limpiar sesión previa
             session.clear()
 
-            # Guardar datos del usuario
             session["usuario"] = user.usuario
             session["rol"] = user.rol
             session["gerencia"] = user.gerencia
 
-            # ⭐ Año automático según fecha del servidor
+            # ⭐ Año automático
             session["anio"] = datetime.now().year
 
             return redirect(url_for("lista"))
@@ -199,19 +194,25 @@ def logout():
 #  GENERAR OFICIO
 # --------------------------
 def generar_folio():
+    prefijo = "SOAPAP-"
+
+    # Buscar el último oficio registrado
     ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
 
+    # Si no hay oficios o el campo está vacío → iniciar en 00001
     if not ultimo or not ultimo.numero:
-        return "SOAPAP-00001"
+        return f"{prefijo}00001"
 
     try:
-        # Extraer la parte numérica final
-        consecutivo = int(ultimo.numero.split("-")[-1])
-        nuevo = consecutivo + 1
-        return f"SOAPAP-{nuevo:05d}"
+        # Extraer la parte numérica del folio
+        consecutivo = int(ultimo.numero.replace(prefijo, ""))
     except:
-        # Si el formato está mal, reiniciar desde 1
-        return "SOAPAP-00001"
+        # Si el formato está mal → reiniciar
+        return f"{prefijo}00001"
+
+    # Incrementar
+    nuevo = consecutivo + 1
+    return f"{prefijo}{nuevo:05d}"
 
 # --------------------------
 #   PROTEGER RUTAS
@@ -301,70 +302,40 @@ def usuarios_bloquear(id):
 # --------------------------
 #   REGISTRO DE OFICIOS (ADMIN)
 # --------------------------
-
 @app.route("/nuevo", methods=["GET", "POST"])
 def nuevo():
-    if "rol" not in session or session["rol"] != "admin":
-        return "Solo el admin puede registrar oficios"
-
-    if request.method == "GET":
-        folio_generado = generar_folio()
-        return render_template("nuevo.html", folio_generado=folio_generado)
+    if session.get("rol") not in ["admin", "superadmin"]:
+        return "Acceso no autorizado", 403
 
     if request.method == "POST":
-        folio = request.form["folio"]  # ⭐ FOLIO SOAPAP
-        numero_oficio = request.form["numero_oficio"]  # ⭐ NUEVO CAMPO
+        anio = session.get("anio")
 
-        fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d")
-        hora = request.form["hora"]
-        numero_expediente = request.form["numero_expediente"]
-        quien_emite = request.form["quien_emite"]
-        con_copia_para = request.form["con_copia_para"]
-        anexos = request.form["anexos"]
-        gerencia_turnada = request.form["gerencia_turnada"]
-        asunto = request.form["asunto"]
-        prioridad = request.form["prioridad"]
-        responsable1 = request.form["responsable1"]
-        responsable2 = request.form["responsable2"]
-        nis = request.form["nis"]
+        folio = generar_folio(anio)
 
-        # Cálculo de fecha límite
-        if prioridad == "Urgente":
-            fecha_limite = sumar_dias_habiles(fecha, 1)
-        elif prioridad == "Alta":
-            fecha_limite = sumar_dias_habiles(fecha, 3)
-        elif prioridad == "Media":
-            fecha_limite = sumar_dias_habiles(fecha, 15)
-        elif prioridad == "Baja":
-            fecha_limite = sumar_dias_habiles(fecha, 30)
-        else:
-            fecha_limite = None
-
-        fecha_limite_str = fecha_limite.strftime("%Y-%m-%d") if fecha_limite else ""
-
-        # ⭐ OBJETO CORRECTAMENTE INDENTADO
-        nuevo = Oficio(
+        oficio = Oficio(
             numero=folio,
-            numero_oficio=numero_oficio,
-            fecha=fecha.strftime("%Y-%m-%d"),
-            hora=hora,
-            numero_expediente=numero_expediente,
-            quien_emite=quien_emite,
-            con_copia_para=con_copia_para,
-            anexos=anexos,
-            gerencia_turnada=gerencia_turnada,
-            asunto=asunto,
-            prioridad=prioridad,
-            termino=0,
-            fecha_limite=fecha_limite_str,
-            responsable1=responsable1,
-            responsable2=responsable2,
-            nis=nis
+            numero_oficio=request.form.get("numero_oficio"),
+            fecha=request.form.get("fecha"),
+            hora=request.form.get("hora"),
+            numero_expediente=request.form.get("numero_expediente"),
+            quien_emite=request.form.get("quien_emite"),
+            con_copia_para=request.form.get("con_copia_para"),
+            anexos=request.form.get("anexos"),
+            gerencia_turnada=request.form.get("gerencia_turnada"),
+            asunto=request.form.get("asunto"),
+            prioridad=request.form.get("prioridad"),
+            termino=int(request.form.get("termino") or 0),
+            fecha_limite=request.form.get("fecha_limite"),
+            responsable1=request.form.get("responsable1"),
+            responsable2=request.form.get("responsable2"),
+            nis=request.form.get("nis"),
+            estatus="Pendiente",
         )
 
-        db.session.add(nuevo)
+        db.session.add(oficio)
         db.session.commit()
 
+        flash(f"Oficio registrado con folio {folio}", "success")
         return redirect(url_for("lista"))
 
     return render_template("nuevo.html")
@@ -372,8 +343,15 @@ def nuevo():
 # --------------------------
 #   LISTA DE OFICIOS
 # --------------------------
+from sqlalchemy import or_
+
 @app.route("/lista")
 def lista():
+    # ⭐ Cambio de año desde menú
+    anio_param = request.args.get("anio", type=int)
+    if anio_param:
+        session["anio"] = anio_param
+
     anio = session.get("anio")
     rol = session.get("rol")
     gerencia = session.get("gerencia")
@@ -381,24 +359,36 @@ def lista():
     consulta = Oficio.query
 
     # ⭐ Filtrar por año automáticamente
-    if anio:
-        consulta = consulta.filter(Oficio.fecha.like(f"{anio}%"))
+    consulta = consulta.filter(Oficio.fecha.like(f"{anio}-%"))
+
+    # ⭐ Filtros opcionales
+    gerencia_f = request.args.get("gerencia")
+    estatus_f = request.args.get("estatus")
+    fecha_f = request.args.get("fecha")
+
+    if gerencia_f:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_f)
+
+    if estatus_f:
+        consulta = consulta.filter_by(estatus=estatus_f)
+
+    if fecha_f:
+        consulta = consulta.filter_by(fecha=fecha_f)
 
     # ⭐ Permisos por rol
     if rol not in ["admin", "superadmin", "admin_limited"]:
 
-        # GAL ve GAL + GAL-Despacho
         if gerencia == "GAL":
             consulta = consulta.filter(
-                (Oficio.gerencia_turnada == "GAL") |
-                (Oficio.gerencia_turnada == "GAL-Despacho")
+                or_(
+                    Oficio.gerencia_turnada == "GAL",
+                    Oficio.gerencia_turnada == "GAL-Despacho"
+                )
             )
 
-        # GAL-Despacho solo lo suyo
         elif gerencia == "GAL-Despacho":
             consulta = consulta.filter_by(gerencia_turnada="GAL-Despacho")
 
-        # Otras gerencias solo lo suyo
         else:
             consulta = consulta.filter_by(gerencia_turnada=gerencia)
 
