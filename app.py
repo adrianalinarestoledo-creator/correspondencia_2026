@@ -605,7 +605,7 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-
+    
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
@@ -627,9 +627,23 @@ def confirmar_importacion():
     ws = wb.active
 
     # ⭐ Encabezados reales en fila 2
-       raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
-        headers = [str(h).strip().upper() if h else "" for h in raw_headers]
+    raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
+    headers = [str(h).strip().upper() if h else "" for h in raw_headers]
     idx = {h: i for i, h in enumerate(headers)}
+
+    # ⭐ Validación de columnas requeridas
+    columnas_requeridas = [
+        "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
+        "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO", "OBSERVACIONES",
+        "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA", "FECHA ACUSE DE RESPUESTA",
+        "ESTATUS"
+    ]
+
+    faltantes = [c for c in columnas_requeridas if c not in headers]
+
+    if faltantes:
+        flash(f"Faltan columnas en el Excel: {', '.join(faltantes)}", "danger")
+        return redirect(url_for("importar_excel"))
 
     # ⭐ Datos reales desde fila 3
     for row in ws.iter_rows(min_row=3):
@@ -694,7 +708,6 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-
 
 # --------------------------
 #   FUNCIÓN PARA GENERAR FOLIO
