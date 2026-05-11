@@ -630,88 +630,83 @@ def generar_folio():
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
 
-    temp_path = session.get("excel_temp_file")
+    file_path = session.get("excel_temp_file")
+    if not file_path:
+        flash("No se encontró archivo para importar", "danger")
+        return redirect(url_for("importar_excel"))
 
-    if not temp_path or not os.path.exists(temp_path):
-        return "No se encontró el archivo temporal"
+    df = pd.read_excel(file_path)
 
-    df = pd.read_pickle(temp_path)
-    df.columns = df.columns.str.strip().str.upper()
-
-    # Importar solo hasta la fila 2698
-    df = df.iloc[:2698]
-
-    # Borrar información anterior
-    Oficio.query.delete()
+    # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
+    db.session.query(Oficio).delete()
     db.session.commit()
 
-    for _, fila in df.iterrows():
+    for index, row in df.iterrows():
 
-        # Ignorar filas vacías
-        if fila.isnull().all():
+        folio = row.get("FOLIO")
+        if not folio:
             continue
 
-        # --------------------------
-        #   FECHAS
-        # --------------------------
-        fecha = fila.get("FECHA INGRESO", "")
-        fecha_limite = fila.get("FECHA LÍMITE DE ATENCIÓN", "")
-
-        if isinstance(fecha, pd.Timestamp):
-            fecha = fecha.strftime("%Y-%m-%d")
-        else:
-            fecha = ""
-
-        if isinstance(fecha_limite, pd.Timestamp):
-            fecha_limite = fecha_limite.strftime("%Y-%m-%d")
-        else:
-            fecha_limite = ""
-
-        # --------------------------
-        #   FOLIO (AQUÍ SÍ EXISTE fila)
-        # --------------------------
-        folio = fila.get("FOLIO", "")
-
-        if pd.isna(folio):
-            folio = ""
-
-        folio = str(folio).strip()
-
-        if folio == "" or folio.lower() == "none":
-            folio = generar_folio()
-
-        # --------------------------
-        #   CREAR REGISTRO
-        # --------------------------
-        nuevo = Oficio(
-            numero=folio,
-            fecha=fecha,
-            hora=fila.get("HORA", ""),
-            numero_expediente=fila.get("NO. EXP.", ""),
-            quien_emite=fila.get("QUIEN LO EMITE", ""),
-            con_copia_para=fila.get("CON COPIA PARA", ""),
-            anexos=fila.get("ANEXOS", ""),
-            gerencia_turnada=fila.get("GERENCIA", ""),
-            asunto=fila.get("ASUNTO", ""),
-            prioridad=fila.get("PRIORIDAD", ""),
-            termino=0,
-            fecha_limite=fecha_limite,
-            responsable1=fila.get("RESPONSABLE 1", ""),
-            responsable2=fila.get("RESPONSABLE 2", ""),
-            nis=fila.get("NIS", "")
+        oficio = Oficio(
+            numero = folio,
+            fecha = row.get("FECHA INGRESO"),
+            hora = row.get("HORA"),
+            asunto = row.get("ASUNTO"),
+            quien_emite = row.get("QUIEN LO EMITE"),
+            gerencia_turnada = row.get("GERENCIA"),
+            prioridad = row.get("PRIORIDAD"),
+            numero_oficio = row.get("NUMERO DE OFICIO")
         )
 
-        db.session.add(nuevo)
+        # ⭐ OBSERVACIONES
+        if "OBSERVACIONES" in row and pd.notna(row["OBSERVACIONES"]):
+            oficio.observaciones = str(row["OBSERVACIONES"]).strip()
+
+        # ⭐ FECHA DE ATENCIÓN
+        if "FECHA DE ATENCIÓN" in row and pd.notna(row["FECHA DE ATENCIÓN"]):
+            try:
+                oficio.fecha_atencion = row["FECHA DE ATENCIÓN"].strftime("%Y-%m-%d")
+            except:
+                oficio.fecha_atencion = None
+
+        # ⭐ OFICIO DE RESPUESTA
+        if "OFICIO DE RESPUESTA" in row and pd.notna(row["OFICIO DE RESPUESTA"]):
+            oficio.oficio_respuesta = str(row["OFICIO DE RESPUESTA"]).strip()
+
+        # ⭐ FECHA ACUSE DE RESPUESTA
+        if "FECHA ACUSE DE RESPUESTA" in row and pd.notna(row["FECHA ACUSE DE RESPUESTA"]):
+            try:
+                oficio.fecha_acuse = row["FECHA ACUSE DE RESPUESTA"].strftime("%Y-%m-%d")
+            except:
+                oficio.fecha_acuse = None
+
+        # ⭐ ESTATUS (FINALIZADO → SOLUCIONADO)
+        estatus_excel = str(row.get("ESTATUS", "")).strip().lower()
+
+        if estatus_excel == "finalizado":
+            oficio.estatus = "Solucionado"
+        elif estatus_excel in ["pendiente", "en proceso", "en acuerdo", "solucionado"]:
+            oficio.estatus = estatus_excel.capitalize()
+        else:
+            oficio.estatus = "Pendiente"
+
+        # ⭐ CÁLCULO DE DÍAS DE ATENCIÓN
+        if oficio.fecha and oficio.fecha_atencion:
+            try:
+                f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
+                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
+                oficio.dias_atencion = (f2 - f1).days
+            except:
+                oficio.dias_atencion = None
+
+        db.session.add(oficio)
 
     db.session.commit()
 
-    os.remove(temp_path)
-    session.pop("excel_temp_file", None)
-
+    flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
+
 
 # --------------------------
 #   INICIO
