@@ -7,17 +7,19 @@
 {% block contenido %}
 
 <h3>📄 Lista de oficios</h3>
-<div class="col-md-2">
-    <label for="anio" class="form-label fw-bold text-secondary">Año</label>
-    <select id="anio" name="anio" class="form-select filtro-gris">
-        <option value="">Todos</option>
-        {% for y in range(2026, 2037) %}
-            <option value="{{ y }}">{{ y }}</option>
-        {% endfor %}
-    </select>
-</div>
 
 <form method="GET" class="row g-3 mb-4">
+
+    <!-- ⭐ FILTRO POR AÑO (2026–2036) -->
+    <div class="col-md-2">
+        <label for="anio" class="form-label fw-bold text-secondary">Año</label>
+        <select id="anio" name="anio" class="form-select filtro-gris">
+            <option value="">Todos</option>
+            {% for y in range(2026, 2037) %}
+                <option value="{{ y }}">{{ y }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
     <div class="col-md-3">
         <label>Gerencia</label>
@@ -57,7 +59,7 @@
     <thead class="table-dark">
         <tr>
             <th>Folio</th>
-           <th>Número de oficio</th>
+            <th>Número de oficio</th>
             <th>Fecha</th>
             <th>Hora</th>
             <th>Asunto</th>
@@ -73,7 +75,6 @@
         {% for o in oficios %}
         <tr>
 
-            <!-- ⭐ SOLO EL FOLIO REAL (o.numero) -->
             <td>{{ o.numero }}</td>
             <td>{{ o.numero_oficio }}</td>
             <td>{{ o.fecha }}</td>
@@ -81,7 +82,6 @@
             <td>{{ o.asunto }}</td>
             <td>{{ o.gerencia_turnada }}</td>
 
-            <!-- ⭐ PRIORIDAD CON COLOR -->
             <td>
                 {% if o.prioridad == "Urgente" %}
                     <span class="badge bg-danger">Urgente</span>
@@ -96,7 +96,6 @@
                 {% endif %}
             </td>
 
-            <!-- ⭐ ESTATUS CON COLOR -->
             <td>
                 {% if o.estatus == "Pendiente" %}
                     <span class="badge bg-danger">Pendiente</span>
