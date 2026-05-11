@@ -10,6 +10,12 @@
 
 <form method="POST" class="row g-3">
 
+    <!-- ⭐ FOLIO (solo mostrar, backend lo genera) -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Folio</label>
+        <input type="text" class="form-control filtro-gris" value="{{ folio_generado }}" readonly>
+    </div>
+
     <!-- ⭐ Número de oficio externo -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Número de oficio</label>
@@ -17,13 +23,13 @@
     </div>
 
     <!-- ⭐ Fecha -->
-    <div class="col-md-3">
+    <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Fecha</label>
         <input type="date" name="fecha" id="fecha" class="form-control filtro-gris" required>
     </div>
 
     <!-- ⭐ Hora -->
-    <div class="col-md-3">
+    <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Hora</label>
         <input type="time" name="hora" class="form-control filtro-gris">
     </div>
@@ -35,7 +41,7 @@
     </div>
 
     <!-- ⭐ Quién emite -->
-    <div class="col-md-8">
+    <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Quién emite</label>
         <input type="text" name="quien_emite" class="form-control filtro-gris">
     </div>
@@ -70,6 +76,7 @@
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Prioridad</label>
         <select name="prioridad" id="prioridad" class="form-select filtro-gris" required>
+            <option value="No aplica">No aplica</option>
             <option value="Baja">Baja</option>
             <option value="Media">Media</option>
             <option value="Alta">Alta</option>
@@ -140,6 +147,7 @@ document.addEventListener("DOMContentLoaded", function () {
         else if (prioridad.value === "Alta") dias = 3;
         else if (prioridad.value === "Media") dias = 15;
         else if (prioridad.value === "Baja") dias = 30;
+        else dias = 0; // No aplica
 
         termino.value = dias;
 
