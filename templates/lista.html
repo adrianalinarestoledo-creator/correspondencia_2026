@@ -7,6 +7,15 @@
 {% block contenido %}
 
 <h3>📄 Lista de oficios</h3>
+<div class="col-md-2">
+    <label for="anio" class="form-label fw-bold text-secondary">Año</label>
+    <select id="anio" name="anio" class="form-select filtro-gris">
+        <option value="">Todos</option>
+        {% for y in range(2026, 2037) %}
+            <option value="{{ y }}">{{ y }}</option>
+        {% endfor %}
+    </select>
+</div>
 
 <form method="GET" class="row g-3 mb-4">
 
