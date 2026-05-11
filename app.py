@@ -627,7 +627,8 @@ def confirmar_importacion():
     ws = wb.active
 
     # ⭐ Encabezados reales en fila 2
-    headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
+       raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
+        headers = [str(h).strip().upper() if h else "" for h in raw_headers]
     idx = {h: i for i, h in enumerate(headers)}
 
     # ⭐ Datos reales desde fila 3
