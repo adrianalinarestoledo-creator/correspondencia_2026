@@ -629,7 +629,6 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
@@ -640,7 +639,10 @@ def confirmar_importacion():
     raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
     headers = [str(h).strip() if h else "" for h in raw_headers]
 
-    # ⭐ Columnas que SÍ quieres importar (EXACTAS)
+    # ⭐ Cortar encabezados hasta Z (ignorar columnas después)
+    headers = headers[:26]   # A–Z
+
+    # ⭐ Columnas que SÍ quieres importar
     columnas_requeridas = [
         "Folio",
         "FECHA INGRESO",
@@ -668,7 +670,7 @@ def confirmar_importacion():
         "DÍAS DE ATENCIÓN"
     ]
 
-    # ⭐ Crear índice EXACTO (ignorando columnas vacías como C y Q)
+    # ⭐ Crear índice EXACTO
     idx = {}
     for col in columnas_requeridas:
         if col in headers:
@@ -676,7 +678,6 @@ def confirmar_importacion():
 
     # ⭐ Validar columnas faltantes
     faltantes = [c for c in columnas_requeridas if c not in idx]
-
     if faltantes:
         print("HEADERS DETECTADOS:", headers)
         print("FALTANTES:", faltantes)
@@ -685,6 +686,9 @@ def confirmar_importacion():
 
     # ⭐ Procesar datos desde fila 3
     for row in ws.iter_rows(min_row=3):
+
+        # ⭐ Cortar la fila EXACTAMENTE hasta Z
+        row = row[:26]
 
         folio = row[idx["Folio"]].value
         if not folio:
