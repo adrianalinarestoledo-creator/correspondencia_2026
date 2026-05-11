@@ -408,27 +408,27 @@ def lista():
 
     return render_template("lista.html", oficios=oficios)
 
+from flask import flash
+
 # --------------------------
 #   RESPONDER OFICIO
 # --------------------------
 @app.route("/responder/<int:id>", methods=["GET", "POST"])
 def responder(id):
-    # Obtener oficio
     oficio = Oficio.query.get_or_404(id)
 
-    # Solo gerencias pueden responder
     rol = session.get("rol")
     gerencia = session.get("gerencia")
 
+    # ⭐ Validación de permisos
     if rol not in ["admin", "superadmin", "admin_limited"]:
-        # Validar que la gerencia coincida
         if gerencia == "GAL":
             if oficio.gerencia_turnada not in ["GAL", "GAL-Despacho"]:
                 return "Acceso no autorizado", 403
         elif oficio.gerencia_turnada != gerencia:
             return "Acceso no autorizado", 403
 
-    # Procesar respuesta
+    # ⭐ Guardar respuesta
     if request.method == "POST":
 
         oficio.estatus = request.form.get("estatus")
@@ -437,7 +437,7 @@ def responder(id):
         oficio.oficio_respuesta = request.form.get("oficio_respuesta")
         oficio.fecha_acuse = request.form.get("fecha_acuse")
 
-        # ⭐ Calcular días de atención si existe fecha de atención
+        # ⭐ Calcular días de atención
         if oficio.fecha and oficio.fecha_atencion:
             try:
                 f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
