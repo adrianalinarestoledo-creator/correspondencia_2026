@@ -159,6 +159,7 @@ with app.app_context():
 #   LOGIN / LOGOUT
 # --------------------------
 from datetime import datetime
+from flask import session, render_template, request, redirect, url_for, flash
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -168,26 +169,32 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-        if user and check_password_hash(user.password_hash, password):
+        # Validación de usuario
+        if user and user.check_password(password) and user.activo:
 
+            # Limpiar sesión previa
+            session.clear()
+
+            # Guardar datos del usuario
             session["usuario"] = user.usuario
             session["rol"] = user.rol
             session["gerencia"] = user.gerencia
 
-            # ⭐ Año automático
+            # ⭐ Año automático según fecha del servidor
             session["anio"] = datetime.now().year
 
             return redirect(url_for("lista"))
 
-        flash("Usuario o contraseña incorrectos")
+        flash("Usuario o contraseña incorrectos o usuario inactivo", "danger")
 
     return render_template("login.html")
 
+
 @app.route("/logout")
 def logout():
-    session.pop("gerencia", None)
-    session.pop("rol", None)
+    session.clear()
     return redirect(url_for("login"))
+
 # --------------------------
 #  GENERAR OFICIO
 # --------------------------
