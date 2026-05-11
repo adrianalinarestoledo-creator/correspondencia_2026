@@ -636,10 +636,19 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    df = pd.read_excel(file_path)
-
+   df = pd.read_excel(
+    file_path,
+    engine="openpyxl",
+    dtype=str,
+    usecols=[
+        "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
+        "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO",
+        "OBSERVACIONES", "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA",
+        "FECHA ACUSE DE RESPUESTA", "ESTATUS"
+    ]
+)
     # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
-    db.session.query(Oficio).delete()
+   db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
     for index, row in df.iterrows():
