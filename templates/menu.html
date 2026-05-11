@@ -76,14 +76,13 @@
                 </li>
                 {% endif %}
 
-                {% if session.get('gerencia') %}
+                 {% if session.get('gerencia') %}
                 <li class="nav-item d-flex align-items-center me-3">
                     <span class="text-muted small">
-                        {{ session.get('gerencia') }}
+                {{ session.get('gerencia') }}
                     </span>
                 </li>
-                {% endif %}
-
+            {% endif %}
                 <li class="nav-item">
                     <a class="btn btn-outline-dark" href="{{ url_for('logout') }}">Salir</a>
                 </li>
