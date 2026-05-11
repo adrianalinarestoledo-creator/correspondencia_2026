@@ -615,8 +615,7 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-    
-# --------------------------
+    # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
 from openpyxl import load_workbook
@@ -639,17 +638,43 @@ def confirmar_importacion():
     # ⭐ Encabezados reales en fila 2
     raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
     headers = [str(h).strip().upper() if h else "" for h in raw_headers]
-    idx = {h: i for i, h in enumerate(headers)}
 
-    # ⭐ Validación de columnas requeridas
+    # ⭐ SOLO ESTAS COLUMNAS SE IMPORTAN
     columnas_requeridas = [
-        "FOLIO", "FECHA INGRESO", "HORA", "ASUNTO", "QUIEN LO EMITE",
-        "GERENCIA", "PRIORIDAD", "NUMERO DE OFICIO", "OBSERVACIONES",
-        "FECHA DE ATENCIÓN", "OFICIO DE RESPUESTA", "FECHA ACUSE DE RESPUESTA",
-        "ESTATUS"
+        "FOLIO",
+        "FECHA INGRESO",
+        "HORA",
+        "NUMERO DE OFICIO",
+        "FECHA DE EMISION",
+        "QUIEN LO EMITE",
+        "NO. EXP",
+        "CON COPIA PARA",
+        "ASUNTO",
+        "ANEXOS",
+        "GERENCIA",
+        "PRIORIDAD",
+        "RESPONSABLE 1",
+        "RESPONSABLE",
+        "NIS",
+        "ESTATUS",
+        "SEMAFORO",
+        "OBSERVACIONES",
+        "TERMINO",
+        "FECHA LIMITE DE ATENCION",
+        "FECHA ATENCION",
+        "OFICIO DE RESPUESTA",
+        "FECHA ACUSE DE RESPUESTA",
+        "DIAS DE ATENCION"
     ]
 
-    faltantes = [c for c in columnas_requeridas if c not in headers]
+    # ⭐ Crear índice SOLO de esas columnas
+    idx = {}
+    for col in columnas_requeridas:
+        if col in headers:
+            idx[col] = headers.index(col)
+
+    # ⭐ Validar que existan
+    faltantes = [c for c in columnas_requeridas if c not in idx]
 
     if faltantes:
         flash(f"Faltan columnas en el Excel: {', '.join(faltantes)}", "danger")
@@ -666,28 +691,40 @@ def confirmar_importacion():
             numero = folio,
             fecha = row[idx["FECHA INGRESO"]].value,
             hora = row[idx["HORA"]].value,
-            asunto = row[idx["ASUNTO"]].value,
+            numero_oficio = row[idx["NUMERO DE OFICIO"]].value,
             quien_emite = row[idx["QUIEN LO EMITE"]].value,
             gerencia_turnada = row[idx["GERENCIA"]].value,
             prioridad = row[idx["PRIORIDAD"]].value,
-            numero_oficio = row[idx["NUMERO DE OFICIO"]].value
+            asunto = row[idx["ASUNTO"]].value,
+            anexos = row[idx["ANEXOS"]].value,
+            con_copia_para = row[idx["CON COPIA PARA"]].value,
+            numero_expediente = row[idx["NO. EXP"]].value,
+            responsable1 = row[idx["RESPONSABLE 1"]].value,
+            responsable2 = row[idx["RESPONSABLE"]].value,
+            nis = row[idx["NIS"]].value,
+            termino = row[idx["TERMINO"]].value,
+            fecha_limite = row[idx["FECHA LIMITE DE ATENCION"]].value
         )
 
+        # ⭐ OBSERVACIONES
         obs = row[idx["OBSERVACIONES"]].value
         if obs:
             oficio.observaciones = str(obs).strip()
 
-        f_at = row[idx["FECHA DE ATENCIÓN"]].value
+        # ⭐ FECHA ATENCIÓN
+        f_at = row[idx["FECHA ATENCION"]].value
         if f_at:
             try:
                 oficio.fecha_atencion = f_at.strftime("%Y-%m-%d")
             except:
                 oficio.fecha_atencion = None
 
+        # ⭐ OFICIO RESPUESTA
         of_resp = row[idx["OFICIO DE RESPUESTA"]].value
         if of_resp:
             oficio.oficio_respuesta = str(of_resp).strip()
 
+        # ⭐ FECHA ACUSE
         f_acuse = row[idx["FECHA ACUSE DE RESPUESTA"]].value
         if f_acuse:
             try:
@@ -695,22 +732,17 @@ def confirmar_importacion():
             except:
                 oficio.fecha_acuse = None
 
-        estatus_excel = str(row[idx["ESTATUS"]].value or "").strip().lower()
+        # ⭐ ESTATUS
+        est = row[idx["ESTATUS"]].value
+        if est:
+            est = str(est).strip().lower()
+            if est == "finalizado":
+                oficio.estatus = "Solucionado"
+            else:
+                oficio.estatus = est.capitalize()
 
-        if estatus_excel == "finalizado":
-            oficio.estatus = "Solucionado"
-        elif estatus_excel in ["pendiente", "en proceso", "en acuerdo", "solucionado"]:
-            oficio.estatus = estatus_excel.capitalize()
-        else:
-            oficio.estatus = "Pendiente"
-
-        if oficio.fecha and oficio.fecha_atencion:
-            try:
-                f1 = datetime.strptime(str(oficio.fecha), "%Y-%m-%d")
-                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
-                oficio.dias_atencion = (f2 - f1).days
-            except:
-                oficio.dias_atencion = None
+        # ⭐ DÍAS DE ATENCIÓN
+        oficio.dias_atencion = row[idx["DIAS DE ATENCION"]].value
 
         db.session.add(oficio)
 
@@ -718,6 +750,7 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
+
 
 # --------------------------
 #   FUNCIÓN PARA GENERAR FOLIO
