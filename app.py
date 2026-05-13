@@ -143,6 +143,14 @@ def logout():
     session.clear()
     return redirect(url_for("login"))
 
+@app.route("/usuarios")
+def usuarios():
+    if session.get("rol") not in ["admin", "superadmin"]:
+        return render_template("bloqueado.html", oficio=None)
+
+    lista_usuarios = Usuario.query.all()
+    return render_template("usuarios.html", usuarios=lista_usuarios)
+
 # --------------------------
 #   REGISTRO DE OFICIOS (ADMIN)
 # --------------------------
