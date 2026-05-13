@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block menu %}
+    {% include "menu.html" %}
+{% endblock %}
+
+{% block contenido %}
+
+<div class="container mt-5">
+
+    <div class="alert alert-warning shadow-sm p-4">
+        <h4 class="mb-3">⚠️ Oficio bloqueado</h4>
+
+        <p class="mb-2">
+            El oficio <strong>{{ oficio.numero }}</strong> ya se encuentra 
+            <span class="badge bg-success">Solucionado</span>.
+        </p>
+
+        <p class="mb-3">
+            Para realizar cualquier modificación o reapertura, deberá solicitarlo 
+            al <strong>Administrador del sistema</strong>.
+        </p>
+
+        <a href="{{ url_for('lista') }}" class="btn btn-secondary">
+            Regresar a la lista
+        </a>
+    </div>
+
+</div>
+
+{% endblock %}
