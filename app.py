@@ -605,7 +605,7 @@ def importar_excel():
     return render_template("importar_excel.html")
     
 # --------------------------
-#   CONFIRMAR IMPORTACIÓN (C2 + LOTES)
+#   CONFIRMAR IMPORTACIÓN (C2 + SQL DIRECTO)
 # --------------------------
 from openpyxl import load_workbook
 from datetime import datetime
@@ -627,19 +627,32 @@ def confirmar_importacion():
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
+    TAMANO_LOTE = 200
     lote = []
-    TAMANO_LOTE = 200  # ⭐ Lote pequeño para evitar timeout
 
-    contador_folio = 1  # ⭐ Folios en memoria
+    contador_folio = 1
 
-    # Procesar desde la fila 3
+    insert_sql = text("""
+        INSERT INTO oficio (
+            numero, numero_oficio, fecha, hora, numero_expediente,
+            quien_emite, con_copia_para, anexos, gerencia_turnada,
+            asunto, prioridad, termino, fecha_limite, responsable1,
+            responsable2, nis, estatus, observaciones, fecha_atencion,
+            oficio_respuesta, fecha_acuse, dias_atencion
+        )
+        VALUES (
+            :numero, :numero_oficio, :fecha, :hora, :numero_expediente,
+            :quien_emite, :con_copia_para, :anexos, :gerencia_turnada,
+            :asunto, :prioridad, :termino, :fecha_limite, :responsable1,
+            :responsable2, :nis, :estatus, :observaciones, :fecha_atencion,
+            :oficio_respuesta, :fecha_acuse, :dias_atencion
+        )
+    """)
+
     for row in ws.iter_rows(min_row=3, values_only=True):
 
         row = row[:26]
 
-        # -----------------------------
-        # MAPEO
-        # -----------------------------
         folio_excel = str(row[0]).strip() if row[0] else ""
         if folio_excel:
             folio = folio_excel
@@ -670,11 +683,7 @@ def confirmar_importacion():
         fecha_acuse = row[24]
         dias_atencion = row[25]
 
-        # -----------------------------
-        # NORMALIZACIÓN
-        # -----------------------------
-
-        # término
+        # Normalización
         if termino in ("", None, " ", "  "):
             termino = None
         else:
@@ -684,7 +693,6 @@ def confirmar_importacion():
             except:
                 termino = None
 
-        # días de atención
         if dias_atencion in ("", None, " ", "  "):
             dias_atencion = None
         else:
@@ -693,11 +701,9 @@ def confirmar_importacion():
             except:
                 dias_atencion = None
 
-        # fecha límite
         if fecha_limite in ("", None):
             fecha_limite = None
 
-        # fecha_acuse
         if fecha_acuse in ("", None, " ", "  "):
             fecha_acuse = None
         else:
@@ -705,7 +711,6 @@ def confirmar_importacion():
             if len(fecha_acuse) > 20:
                 fecha_acuse = fecha_acuse[:20]
 
-        # cálculo automático
         if fecha_ingreso and fecha_atencion and dias_atencion is None:
             try:
                 f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -714,45 +719,38 @@ def confirmar_importacion():
             except:
                 dias_atencion = None
 
-        # -----------------------------
-        # AGREGAR AL LOTE
-        # -----------------------------
-        lote.append(
-            Oficio(
-                numero=folio,
-                numero_oficio=numero_oficio,
-                fecha=fecha_ingreso,
-                hora=hora,
-                numero_expediente=numero_expediente,
-                quien_emite=quien_emite,
-                con_copia_para=con_copia_para,
-                anexos=anexos,
-                gerencia_turnada=gerencia_turnada,
-                asunto=asunto,
-                prioridad=prioridad,
-                termino=termino,
-                fecha_limite=fecha_limite,
-                responsable1=responsable1,
-                responsable2=responsable2,
-                nis=nis,
-                estatus=estatus,
-                observaciones=observaciones,
-                fecha_atencion=fecha_atencion,
-                oficio_respuesta=oficio_respuesta,
-                fecha_acuse=fecha_acuse,
-                dias_atencion=dias_atencion
-            )
-        )
+        lote.append({
+            "numero": folio,
+            "numero_oficio": numero_oficio,
+            "fecha": fecha_ingreso,
+            "hora": hora,
+            "numero_expediente": numero_expediente,
+            "quien_emite": quien_emite,
+            "con_copia_para": con_copia_para,
+            "anexos": anexos,
+            "gerencia_turnada": gerencia_turnada,
+            "asunto": asunto,
+            "prioridad": prioridad,
+            "termino": termino,
+            "fecha_limite": fecha_limite,
+            "responsable1": responsable1,
+            "responsable2": responsable2,
+            "nis": nis,
+            "estatus": estatus,
+            "observaciones": observaciones,
+            "fecha_atencion": fecha_atencion,
+            "oficio_respuesta": oficio_respuesta,
+            "fecha_acuse": fecha_acuse,
+            "dias_atencion": dias_atencion
+        })
 
-        # ⭐ Cuando el lote llega a 200 → insertar
         if len(lote) >= TAMANO_LOTE:
-            db.session.bulk_save_objects(lote)
+            db.session.execute(insert_sql, lote)
             db.session.commit()
-            lote = []  # limpiar lote
+            lote = []
 
-    # ⭐ Insertar el último lote
     if lote:
-        db.session.bulk_save_objects(lote)
+        db.session.execute(insert_sql, lote)
         db.session.commit()
 
     flash("Importación completada correctamente", "success")
