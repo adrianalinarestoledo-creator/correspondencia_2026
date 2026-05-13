@@ -42,21 +42,13 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('nuevo') }}">➕ Nuevo Oficio</a>
                 </li>
-                {% endif %}
 
-                {% if session.get('rol') in ['admin', 'superadmin'] %}
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ url_for('importar_excel') }}">📥 Importar Excel</a>
-                </li>
-                {% endif %}
-
-                {% if session.get('rol') == 'superadmin' %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('usuarios') }}">👥 Usuarios</a>
                 </li>
                 {% endif %}
 
-                <!-- ⭐ Exportaciones -->
+                <!-- ⭐ Exportaciones (visibles para todos) -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_excel') }}">📤 Exportar Excel</a>
                 </li>
@@ -88,7 +80,7 @@
                 </li>
                 {% endif %}
 
-                <!-- ⭐ Mostrar gerencia SOLO si NO es admin -->
+                <!-- ⭐ Mostrar gerencia SOLO si NO es admin/superadmin -->
                 {% if session.get('rol') not in ['admin', 'superadmin'] %}
                 <li class="nav-item d-flex align-items-center me-3">
                     <span class="text-muted small">
@@ -97,6 +89,7 @@
                 </li>
                 {% endif %}
 
+                <!-- ⭐ Salir -->
                 <li class="nav-item">
                     <a class="btn btn-outline-dark" href="{{ url_for('logout') }}">Salir</a>
                 </li>
@@ -106,4 +99,3 @@
         </div>
     </div>
 </nav>
-
