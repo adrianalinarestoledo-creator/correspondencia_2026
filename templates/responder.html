@@ -22,8 +22,9 @@
     <!-- ⭐ ESTATUS -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Estatus</label>
+
         <select name="estatus" id="estatus" class="form-select" onchange="mostrarCampos()"
-            {% if oficio.estatus == "Solucionado" %}disabled{% endif %}>
+            {% if oficio.estatus == "Solucionado" and session['rol'] != 'admin' %}disabled{% endif %}>
             
             <option value="Pendiente" {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
             <option value="En proceso" {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
@@ -32,12 +33,11 @@
         </select>
 
         {% if oficio.estatus == "Solucionado" %}
-            <!-- Mantener valor si está bloqueado -->
             <input type="hidden" name="estatus" value="Solucionado">
         {% endif %}
     </div>
 
-    <!-- ⭐ CAMPOS ADICIONALES (solo proceso y acuerdo) -->
+    <!-- ⭐ CAMPOS ADICIONALES -->
     <div id="campos_extra" style="display:none;">
 
         <div class="col-md-12 mt-3">
@@ -64,7 +64,7 @@
 
     <!-- ⭐ BOTÓN -->
     <div class="col-md-12 mt-3">
-        {% if oficio.estatus == "Solucionado" %}
+        {% if oficio.estatus == "Solucionado" and session['rol'] != 'admin' %}
             <span class="badge bg-secondary p-2">Este oficio ya está finalizado</span>
         {% else %}
             <button class="btn btn-primary">Guardar respuesta</button>
@@ -73,20 +73,18 @@
 
 </form>
 
-<!-- ⭐ SCRIPT PARA MOSTRAR / OCULTAR CAMPOS -->
 <script>
 function mostrarCampos() {
     let estatus = document.getElementById("estatus").value;
     let extra = document.getElementById("campos_extra");
 
-    if (estatus === "En proceso" || estatus === "En acuerdo") {
+    if (estatus === "En proceso" || estatus === "En acuerdo" || estatus === "Solucionado") {
         extra.style.display = "block";
     } else {
         extra.style.display = "none";
     }
 }
 
-// ⭐ Ejecutar al cargar la página (para edición)
 document.addEventListener("DOMContentLoaded", mostrarCampos);
 </script>
 
