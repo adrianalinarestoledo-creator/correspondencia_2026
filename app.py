@@ -359,24 +359,24 @@ def atender(id):
 def responder(id):
     oficio = Oficio.query.get_or_404(id)
 
-    if request.method == "POST":
+    # ⭐ BLOQUEAR SI YA ESTÁ SOLUCIONADO Y NO ES ADMIN
+    if oficio.estatus == "Solucionado" and session.get("rol") != "admin":
+        return render_template("bloqueado.html", oficio=oficio)
 
-        # Guardar campos normales
+    if request.method == "POST":
         oficio.oficio_respuesta = request.form.get("oficio_respuesta")
         oficio.fecha_acuse = request.form.get("fecha_acuse")
         oficio.observaciones = request.form.get("observaciones")
 
-        # ⭐ GUARDAR ESTATUS
         nuevo_estatus = request.form.get("estatus")
         oficio.estatus = nuevo_estatus
 
-        # ⭐ SI EL ESTATUS ES SOLUCIONADO → BLOQUEAR OFICIO
+        # ⭐ SI ES SOLUCIONADO → CERRAR OFICIO
         if nuevo_estatus == "Solucionado":
-            # Si no tiene fecha de atención, poner hoy
             if not oficio.fecha_atencion:
                 oficio.fecha_atencion = datetime.now().strftime("%Y-%m-%d")
 
-            # Calcular días de atención
+            # Calcular días
             if oficio.fecha and oficio.fecha_atencion:
                 try:
                     f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
