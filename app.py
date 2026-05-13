@@ -46,6 +46,7 @@ def dias_habiles(fecha_inicio, fecha_fin):
             dias += 1
         actual += timedelta(days=1)
     return dias
+
 # --------------------------
 #   MODELOS
 # --------------------------
@@ -109,6 +110,172 @@ class Oficio(db.Model):
 
     # Campo calculado
     dias_atencion = db.Column(db.Integer)
+TAMANO_BLOQUE = 500  # filas por bloque
+
+@app.route("/confirmar_importacion", methods=["POST"])
+def confirmar_importacion():
+
+    file_path = session.get("excel_temp_file")
+    if not file_path:
+        flash("No se encontró archivo para importar", "danger")
+        return redirect(url_for("importar_excel"))
+
+    # TRUNCATE SOLO UNA VEZ
+    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
+    db.session.commit()
+
+    # Cargar Excel
+    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
+    ws = wb.active
+
+    # Guardar total de filas y estado inicial
+    total_filas = ws.max_row
+    session["total_filas"] = total_filas
+    session["fila_actual"] = 3          # empezamos en fila 3 (A3)
+    session["contador_folio"] = 1       # folios generados en memoria
+
+    # Procesar primer bloque
+    procesar_bloque(ws)
+
+    return render_template(
+        "continuar_importacion.html",
+        procesadas=session["fila_actual"] - 3,
+        total=total_filas - 2
+    )
+
+
+def procesar_bloque(ws):
+    fila_inicio = session["fila_actual"]
+    fila_fin = fila_inicio + TAMANO_BLOQUE - 1
+
+    insert_sql = text("""
+        INSERT INTO oficio (
+            numero, numero_oficio, fecha, hora, numero_expediente,
+            quien_emite, con_copia_para, anexos, gerencia_turnada,
+            asunto, prioridad, termino, fecha_limite, responsable1,
+            responsable2, nis, estatus, observaciones, fecha_atencion,
+            oficio_respuesta, fecha_acuse, dias_atencion
+        )
+        VALUES (
+            :numero, :numero_oficio, :fecha, :hora, :numero_expediente,
+            :quien_emite, :con_copia_para, :anexos, :gerencia_turnada,
+            :asunto, :prioridad, :termino, :fecha_limite, :responsable1,
+            :responsable2, :nis, :estatus, :observaciones, :fecha_atencion,
+            :oficio_respuesta, :fecha_acuse, :dias_atencion
+        )
+    """)
+
+    lote = []
+    contador_folio = session.get("contador_folio", 1)
+
+    for row in ws.iter_rows(min_row=fila_inicio, max_row=fila_fin, values_only=True):
+        if not row:
+            continue
+
+        row = row[:26]
+
+        # Folio
+        folio_excel = str(row[0]).strip() if row[0] else ""
+        if folio_excel:
+            folio = folio_excel
+        else:
+            folio = f"SOAPAP-2026-{contador_folio:04d}"
+            contador_folio += 1
+
+        fecha_ingreso = row[1]
+        hora = row[3]
+        numero_oficio = row[4]
+        fecha_emision = row[5]
+        quien_emite = row[6]
+        numero_expediente = row[7]
+        con_copia_para = row[8]
+        asunto = row[9]
+        anexos = row[10]
+        gerencia_turnada = row[11]
+        prioridad = row[12]
+        responsable1 = row[13]
+        responsable2 = row[14]
+        nis = row[15]
+        estatus = row[17]
+        observaciones = row[19]
+        termino = row[20]
+        fecha_limite = row[21]
+        fecha_atencion = row[22]
+        oficio_respuesta = row[23]
+        fecha_acuse = row[24]
+        dias_atencion = row[25]
+
+        # Normalizar término
+        if termino in ("", None, " ", "  "):
+            termino = None
+        else:
+            try:
+                nums = re.findall(r"\d+", str(termino))
+                termino = int(nums[0]) if nums else None
+            except:
+                termino = None
+
+        # Normalizar días de atención
+        if dias_atencion in ("", None, " ", "  "):
+            dias_atencion = None
+        else:
+            try:
+                dias_atencion = int(dias_atencion)
+            except:
+                dias_atencion = None
+
+        # Normalizar fecha límite
+        if fecha_limite in ("", None):
+            fecha_limite = None
+
+        # Normalizar fecha_acuse (VARCHAR 20)
+        if fecha_acuse in ("", None, " ", "  "):
+            fecha_acuse = None
+        else:
+            fecha_acuse = str(fecha_acuse).strip()
+            if len(fecha_acuse) > 20:
+                fecha_acuse = fecha_acuse[:20]
+
+        # Cálculo automático de días de atención
+        if fecha_ingreso and fecha_atencion and dias_atencion is None:
+            try:
+                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                dias_atencion = (f2 - f1).days
+            except:
+                dias_atencion = None
+
+        lote.append({
+            "numero": folio,
+            "numero_oficio": numero_oficio,
+            "fecha": fecha_ingreso,
+            "hora": hora,
+            "numero_expediente": numero_expediente,
+            "quien_emite": quien_emite,
+            "con_copia_para": con_copia_para,
+            "anexos": anexos,
+            "gerencia_turnada": gerencia_turnada,
+            "asunto": asunto,
+            "prioridad": prioridad,
+            "termino": termino,
+            "fecha_limite": fecha_limite,
+            "responsable1": responsable1,
+            "responsable2": responsable2,
+            "nis": nis,
+            "estatus": estatus,
+            "observaciones": observaciones,
+            "fecha_atencion": fecha_atencion,
+            "oficio_respuesta": oficio_respuesta,
+            "fecha_acuse": fecha_acuse,
+            "dias_atencion": dias_atencion
+        })
+
+    if lote:
+        db.session.execute(insert_sql, lote)
+        db.session.commit()
+
+    session["fila_actual"] = fila_fin + 1
+    session["contador_folio"] = contador_folio
 
 # --------------------------
 #   VALIDACIÓN DE PASSWORD
@@ -603,14 +770,10 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-    
 # --------------------------
-#   CONFIRMAR IMPORTACIÓN (C2 + SQL DIRECTO)
-# --------------------------
-from openpyxl import load_workbook
-from datetime import datetime
-import re
-from sqlalchemy import text
+#   CONFIRMACIÓN DE IMPORTACION
+# --------------------------   
+TAMANO_BLOQUE = 500  # filas por bloque
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -620,17 +783,33 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    # ⭐ BORRAR TODA LA TABLA
+    # TRUNCATE SOLO UNA VEZ
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
+    # Cargar Excel
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    TAMANO_LOTE = 200
-    lote = []
+    # Guardar total de filas y estado inicial
+    total_filas = ws.max_row
+    session["total_filas"] = total_filas
+    session["fila_actual"] = 3          # empezamos en fila 3 (A3)
+    session["contador_folio"] = 1       # folios generados en memoria
 
-    contador_folio = 1
+    # Procesar primer bloque
+    procesar_bloque(ws)
+
+    return render_template(
+        "continuar_importacion.html",
+        procesadas=session["fila_actual"] - 3,
+        total=total_filas - 2
+    )
+
+
+def procesar_bloque(ws):
+    fila_inicio = session["fila_actual"]
+    fila_fin = fila_inicio + TAMANO_BLOQUE - 1
 
     insert_sql = text("""
         INSERT INTO oficio (
@@ -649,10 +828,16 @@ def confirmar_importacion():
         )
     """)
 
-    for row in ws.iter_rows(min_row=3, values_only=True):
+    lote = []
+    contador_folio = session.get("contador_folio", 1)
+
+    for row in ws.iter_rows(min_row=fila_inicio, max_row=fila_fin, values_only=True):
+        if not row:
+            continue
 
         row = row[:26]
 
+        # Folio
         folio_excel = str(row[0]).strip() if row[0] else ""
         if folio_excel:
             folio = folio_excel
@@ -683,7 +868,7 @@ def confirmar_importacion():
         fecha_acuse = row[24]
         dias_atencion = row[25]
 
-        # Normalización
+        # Normalizar término
         if termino in ("", None, " ", "  "):
             termino = None
         else:
@@ -693,6 +878,7 @@ def confirmar_importacion():
             except:
                 termino = None
 
+        # Normalizar días de atención
         if dias_atencion in ("", None, " ", "  "):
             dias_atencion = None
         else:
@@ -701,9 +887,11 @@ def confirmar_importacion():
             except:
                 dias_atencion = None
 
+        # Normalizar fecha límite
         if fecha_limite in ("", None):
             fecha_limite = None
 
+        # Normalizar fecha_acuse (VARCHAR 20)
         if fecha_acuse in ("", None, " ", "  "):
             fecha_acuse = None
         else:
@@ -711,6 +899,7 @@ def confirmar_importacion():
             if len(fecha_acuse) > 20:
                 fecha_acuse = fecha_acuse[:20]
 
+        # Cálculo automático de días de atención
         if fecha_ingreso and fecha_atencion and dias_atencion is None:
             try:
                 f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -744,18 +933,40 @@ def confirmar_importacion():
             "dias_atencion": dias_atencion
         })
 
-        if len(lote) >= TAMANO_LOTE:
-            db.session.execute(insert_sql, lote)
-            db.session.commit()
-            lote = []
-
     if lote:
         db.session.execute(insert_sql, lote)
         db.session.commit()
 
-    flash("Importación completada correctamente", "success")
-    return redirect(url_for("lista"))
-  
+    session["fila_actual"] = fila_fin + 1
+    session["contador_folio"] = contador_folio
+
+
+@app.route("/continuar_importacion")
+def continuar_importacion():
+
+    file_path = session.get("excel_temp_file")
+    if not file_path:
+        flash("No se encontró archivo para continuar la importación", "danger")
+        return redirect(url_for("importar_excel"))
+
+    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
+    ws = wb.active
+
+    total = session.get("total_filas", ws.max_row)
+    actual = session.get("fila_actual", 3)
+
+    if actual >= total:
+        flash("Importación completada correctamente", "success")
+        return redirect(url_for("lista"))
+
+    procesar_bloque(ws)
+
+    return render_template(
+        "continuar_importacion.html",
+        procesadas=session["fila_actual"] - 3,
+        total=total - 2
+    )
+
 # --------------------------
 #   INICIO
 # --------------------------
