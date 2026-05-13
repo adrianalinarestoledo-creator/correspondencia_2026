@@ -644,66 +644,73 @@ def confirmar_importacion():
         # ⭐ Cortar SOLO columnas A–Z (0–25)
         row = row[:26]
 
-        # ⭐ Mapeo exacto según tus columnas
-        folio = row[0]                  # A
-        fecha_ingreso = row[1]          # B
-        hora = row[3]                   # D
-        numero_oficio = row[4]          # E
-        fecha_emision = row[5]          # F
-        quien_emite = row[6]            # G
-        no_exp = row[7]                 # H
-        con_copia = row[8]              # I
-        asunto = row[9]                 # J
-        anexos = row[10]                # K
-        gerencia = row[11]              # L
-        prioridad = row[12]             # M
-        responsable1 = row[13]          # N
-        responsable2 = row[14]          # O
-        nis = row[15]                   # P
+        # -----------------------------
+        # MAPEO EXACTO A TU MODELO
+        # -----------------------------
 
-        estatus = row[17]               # R
-        semaforo = row[18]              # S
-        observaciones = row[19]         # T
-        termino = row[20]               # U
-        fecha_limite = row[21]          # V
-        fecha_atencion = row[22]        # W
-        oficio_respuesta = row[23]      # X
-        fecha_acuse = row[24]           # Y
-        dias_atencion = row[25]         # Z
+        numero = row[0]                     # A - Folio
+        fecha_ingreso = row[1]              # B - FECHA INGRESO
+        hora = row[3]                       # D - Hora
+        numero_oficio = row[4]              # E - NUMERO DE OFICIO
+        fecha_emision = row[5]              # F - FECHA DE EMISIÓN
+        quien_emite = row[6]                # G - QUIEN LO EMITE
+        numero_expediente = row[7]          # H - No. EXP.
+        con_copia_para = row[8]             # I - CON COPIA PARA
+        asunto = row[9]                     # J - ASUNTO
+        anexos = row[10]                    # K - ANEXOS
+        gerencia_turnada = row[11]          # L - GERENCIA
+        prioridad = row[12]                 # M - PRIORIDAD
+        responsable1 = row[13]              # N - RESPONSABLE 1
+        responsable2 = row[14]              # O - RESPONSABLE 2
+        nis = row[15]                       # P - NIS
 
-        # ⭐ Crear objeto Oficio
+        estatus = row[17]                   # R - ESTATUS
+        semaforo = row[18]                  # S - SEMÁFORO
+        observaciones = row[19]             # T - OBSERVACIONES
+        termino = row[20]                   # U - TÉRMINO
+        fecha_limite = row[21]              # V - FECHA LÍMITE DE ATENCIÓN
+        fecha_atencion = row[22]            # W - FECHA ATENCIÓN
+        oficio_respuesta = row[23]          # X - OFICIO DE RESPUESTA
+        fecha_acuse = row[24]               # Y - FECHA ACUSE DE RESPUESTA
+        dias_atencion = row[25]             # Z - DÍAS DE ATENCIÓN
+
+        # -----------------------------
+        # CREAR OBJETO OFICIO
+        # -----------------------------
         oficio = Oficio(
-            folio=folio,
-            fecha_ingreso=fecha_ingreso,
-            hora=hora,
+            numero=numero,
             numero_oficio=numero_oficio,
-            fecha_emision=fecha_emision,
+            fecha=fecha_ingreso,                # tu modelo usa "fecha"
+            hora=hora,
+            numero_expediente=numero_expediente,
             quien_emite=quien_emite,
-            no_exp=no_exp,
-            con_copia_para=con_copia,
-            asunto=asunto,
+            con_copia_para=con_copia_para,
             anexos=anexos,
-            gerencia=gerencia,
+            gerencia_turnada=gerencia_turnada,
+            asunto=asunto,
             prioridad=prioridad,
+            termino=termino,
+            fecha_limite=fecha_limite,
             responsable1=responsable1,
             responsable2=responsable2,
             nis=nis,
+
+            # Respuesta de gerencias
             estatus=estatus,
-            semaforo=semaforo,
             observaciones=observaciones,
-            termino=termino,
-            fecha_limite_atencion=fecha_limite,
             fecha_atencion=fecha_atencion,
             oficio_respuesta=oficio_respuesta,
-            fecha_acuse_respuesta=fecha_acuse,
+            fecha_acuse=fecha_acuse,
+
+            # Campo calculado
             dias_atencion=dias_atencion
         )
 
-        # ⭐ Cálculo automático de días de atención si faltan
+        # ⭐ Cálculo automático si no viene en Excel
         if fecha_ingreso and fecha_atencion and not dias_atencion:
             try:
-                f1 = fecha_ingreso if isinstance(fecha_ingreso, datetime) else datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                f2 = fecha_atencion if isinstance(fecha_atencion, datetime) else datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
                 oficio.dias_atencion = (f2 - f1).days
             except:
                 oficio.dias_atencion = None
