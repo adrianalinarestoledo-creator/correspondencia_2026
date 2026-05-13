@@ -370,7 +370,7 @@ def responder(id):
     return render_template("responder.html", oficio=oficio)
 
 # --------------------------
-#   IMPORTAR EXCEL
+#   IMPORTAR EXCEL (SUBIR Y VISTA PREVIA)
 # --------------------------
 
 @app.route("/importar_excel", methods=["GET", "POST"])
@@ -379,14 +379,21 @@ def importar_excel():
         archivo = request.files["archivo"]
         df = pd.read_excel(archivo)
 
-        datos = df.to_dict(orient="records")
+        # Convertir a vista previa
+        preview = df.to_dict(orient="records")
+        columnas = df.columns.tolist()
 
-        return render_template("importar_excel_preview.html", datos=datos)
+        return render_template(
+            "importar_excel_preview.html",
+            preview=preview,
+            columnas=columnas
+        )
 
     return render_template("importar_excel.html")
 
+
 # --------------------------
-#   GUARDAR IMPORTACIÓN
+#   GUARDAR IMPORTACIÓN (RECIBE JSON)
 # --------------------------
 
 @app.route("/importar_excel_guardar", methods=["POST"])
@@ -424,6 +431,7 @@ def importar_excel_guardar():
     db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
+
 
 # --------------------------
 #   DASHBOARD
