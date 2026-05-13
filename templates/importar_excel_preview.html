@@ -27,9 +27,31 @@
     </tbody>
 </table>
 
-<form method="POST" action="{{ url_for('importar_excel_guardar') }}">
-    <button class="btn btn-success">Confirmar importación</button>
-</form>
+<!-- ⭐ Botón que dispara la importación -->
+<button id="btnGuardar" class="btn btn-success mt-3">Confirmar importación</button>
+
+<!-- ⭐ Script que envía JSON a Flask -->
+<script>
+document.getElementById("btnGuardar").addEventListener("click", function () {
+
+    fetch("{{ url_for('importar_excel_guardar') }}", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({{ preview|tojson }})
+    })
+    .then(r => r.json())
+    .then(data => {
+        alert("Importación completada");
+        window.location.href = "{{ url_for('lista') }}";
+    })
+    .catch(err => {
+        alert("Error al importar");
+        console.error(err);
+    });
+
+});
+</script>
 
 {% endblock %}
-
