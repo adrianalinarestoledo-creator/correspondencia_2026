@@ -37,18 +37,28 @@
                     </ul>
                 </li>
 
-                <!-- ⭐ Opciones solo para admin y superadmin -->
+                <!-- ⭐ Nuevo Oficio (solo admin y superadmin) -->
                 {% if session.get('rol') in ['admin', 'superadmin'] %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('nuevo') }}">➕ Nuevo Oficio</a>
                 </li>
+                {% endif %}
 
+                <!-- ⭐ Usuarios (solo superadmin) -->
+                {% if session.get('rol') == 'superadmin' %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('usuarios') }}">👥 Usuarios</a>
                 </li>
                 {% endif %}
 
-                <!-- ⭐ Exportaciones (visibles para todos) -->
+                <!-- ⭐ Importar Excel (solo superadmin) -->
+                {% if session.get('rol') == 'superadmin' %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('importar_excel') }}">📥 Importar Excel</a>
+                </li>
+                {% endif %}
+
+                <!-- ⭐ Exportaciones (todos) -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_excel') }}">📤 Exportar Excel</a>
                 </li>
@@ -56,6 +66,13 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_pdf') }}">📄 Exportar PDF</a>
                 </li>
+
+                <!-- ⭐ Reabrir Oficio (solo admin y superadmin) -->
+                {% if session.get('rol') in ['admin', 'superadmin'] %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('reabrir') }}">🔄 Reabrir Oficio</a>
+                </li>
+                {% endif %}
 
             </ul>
 
@@ -80,7 +97,7 @@
                 </li>
                 {% endif %}
 
-                <!-- ⭐ Mostrar gerencia SOLO si NO es admin/superadmin -->
+                <!-- ⭐ GERENCIA (solo si NO es admin/superadmin) -->
                 {% if session.get('rol') not in ['admin', 'superadmin'] %}
                 <li class="nav-item d-flex align-items-center me-3">
                     <span class="text-muted small">
