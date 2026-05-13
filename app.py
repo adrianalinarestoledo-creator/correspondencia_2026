@@ -9,12 +9,7 @@ import pdfkit
 import re
 import os
 import uuid
-from openpyxl import load_workbook
-
-wb = load_workbook(archivo, read_only=True)
-ws = wb.active
-
-rows = list(ws.iter_rows(values_only=True))
+from openpyxl import load_workbook  # si ya no lo usas, también lo puedes borrar
 
 app = Flask(__name__)
 
