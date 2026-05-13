@@ -196,25 +196,28 @@ def logout():
 #  GENERAR OFICIO
 # --------------------------
 def generar_folio():
-    prefijo = "SOAPAP-"
+    prefijo = "SOAPAP-2026-"
 
-    # Buscar el último oficio registrado
-    ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
+    # Buscar el folio más alto que siga el formato correcto
+    ultimo = (
+        Oficio.query
+        .filter(Oficio.numero.like(f"{prefijo}%"))
+        .order_by(Oficio.numero.desc())
+        .first()
+    )
 
-    # Si no hay oficios o el campo está vacío → iniciar en 00001
+    # Si no hay ningún folio aún
     if not ultimo or not ultimo.numero:
-        return f"{prefijo}00001"
+        return f"{prefijo}0001"
 
     try:
-        # Extraer la parte numérica del folio
+        # Extraer la parte numérica final
         consecutivo = int(ultimo.numero.replace(prefijo, ""))
     except:
-        # Si el formato está mal → reiniciar
-        return f"{prefijo}00001"
+        consecutivo = 0
 
-    # Incrementar
     nuevo = consecutivo + 1
-    return f"{prefijo}{nuevo:05d}"
+    return f"{prefijo}{nuevo:04d}"
 
 # --------------------------
 #   PROTEGER RUTAS
@@ -631,91 +634,123 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
-    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
-    db.session.commit()
-
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    # ⭐ Procesar desde la fila 3 (fila 1 título, fila 2 encabezados)
+    # Procesar desde la fila 3 (fila 1 título, fila 2 encabezados)
     for row in ws.iter_rows(min_row=3, values_only=True):
 
-        # ⭐ Cortar SOLO columnas A–Z (0–25)
-        row = row[:26]
+        row = row[:26]  # columnas A–Z
 
         # -----------------------------
         # MAPEO EXACTO A TU MODELO
         # -----------------------------
+        folio_excel = str(row[0]).strip() if row[0] else ""
 
-        numero = row[0]                     # A - Folio
-        fecha_ingreso = row[1]              # B - FECHA INGRESO
-        hora = row[3]                       # D - Hora
-        numero_oficio = row[4]              # E - NUMERO DE OFICIO
-        fecha_emision = row[5]              # F - FECHA DE EMISIÓN
-        quien_emite = row[6]                # G - QUIEN LO EMITE
-        numero_expediente = row[7]          # H - No. EXP.
-        con_copia_para = row[8]             # I - CON COPIA PARA
-        asunto = row[9]                     # J - ASUNTO
-        anexos = row[10]                    # K - ANEXOS
-        gerencia_turnada = row[11]          # L - GERENCIA
-        prioridad = row[12]                 # M - PRIORIDAD
-        responsable1 = row[13]              # N - RESPONSABLE 1
-        responsable2 = row[14]              # O - RESPONSABLE 2
-        nis = row[15]                       # P - NIS
+        # ⭐ Si el folio viene vacío → generar uno nuevo
+        if folio_excel == "" or folio_excel.lower() == "none":
+            folio = generar_folio()
+        else:
+            folio = folio_excel
 
-        estatus = row[17]                   # R - ESTATUS
-        semaforo = row[18]                  # S - SEMÁFORO
-        observaciones = row[19]             # T - OBSERVACIONES
-        termino = row[20]                   # U - TÉRMINO
-        fecha_limite = row[21]              # V - FECHA LÍMITE DE ATENCIÓN
-        fecha_atencion = row[22]            # W - FECHA ATENCIÓN
-        oficio_respuesta = row[23]          # X - OFICIO DE RESPUESTA
-        fecha_acuse = row[24]               # Y - FECHA ACUSE DE RESPUESTA
-        dias_atencion = row[25]             # Z - DÍAS DE ATENCIÓN
+        fecha_ingreso = row[1]
+        hora = row[3]
+        numero_oficio = row[4]
+        fecha_emision = row[5]
+        quien_emite = row[6]
+        numero_expediente = row[7]
+        con_copia_para = row[8]
+        asunto = row[9]
+        anexos = row[10]
+        gerencia_turnada = row[11]
+        prioridad = row[12]
+        responsable1 = row[13]
+        responsable2 = row[14]
+        nis = row[15]
+        estatus = row[17]
+        semaforo = row[18]
+        observaciones = row[19]
+        termino = row[20]
+        fecha_limite = row[21]
+        fecha_atencion = row[22]
+        oficio_respuesta = row[23]
+        fecha_acuse = row[24]
+        dias_atencion = row[25]
 
         # -----------------------------
-        # CREAR OBJETO OFICIO
+        # ¿EXISTE YA ESTE FOLIO?
         # -----------------------------
-        oficio = Oficio(
-            numero=numero,
-            numero_oficio=numero_oficio,
-            fecha=fecha_ingreso,                # tu modelo usa "fecha"
-            hora=hora,
-            numero_expediente=numero_expediente,
-            quien_emite=quien_emite,
-            con_copia_para=con_copia_para,
-            anexos=anexos,
-            gerencia_turnada=gerencia_turnada,
-            asunto=asunto,
-            prioridad=prioridad,
-            termino=termino,
-            fecha_limite=fecha_limite,
-            responsable1=responsable1,
-            responsable2=responsable2,
-            nis=nis,
+        existe = Oficio.query.filter_by(numero=folio).first()
 
-            # Respuesta de gerencias
-            estatus=estatus,
-            observaciones=observaciones,
-            fecha_atencion=fecha_atencion,
-            oficio_respuesta=oficio_respuesta,
-            fecha_acuse=fecha_acuse,
+        if existe:
+            # ⭐ ACTUALIZAR REGISTRO EXISTENTE
+            existe.numero_oficio = numero_oficio
+            existe.fecha = fecha_ingreso
+            existe.hora = hora
+            existe.numero_expediente = numero_expediente
+            existe.quien_emite = quien_emite
+            existe.con_copia_para = con_copia_para
+            existe.anexos = anexos
+            existe.gerencia_turnada = gerencia_turnada
+            existe.asunto = asunto
+            existe.prioridad = prioridad
+            existe.termino = termino
+            existe.fecha_limite = fecha_limite
+            existe.responsable1 = responsable1
+            existe.responsable2 = responsable2
+            existe.nis = nis
+            existe.estatus = estatus
+            existe.observaciones = observaciones
+            existe.fecha_atencion = fecha_atencion
+            existe.oficio_respuesta = oficio_respuesta
+            existe.fecha_acuse = fecha_acuse
 
-            # Campo calculado
-            dias_atencion=dias_atencion
-        )
+            # Cálculo automático
+            if fecha_ingreso and fecha_atencion and not dias_atencion:
+                try:
+                    f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                    f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                    existe.dias_atencion = (f2 - f1).days
+                except:
+                    existe.dias_atencion = None
 
-        # ⭐ Cálculo automático si no viene en Excel
-        if fecha_ingreso and fecha_atencion and not dias_atencion:
-            try:
-                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
-                oficio.dias_atencion = (f2 - f1).days
-            except:
-                oficio.dias_atencion = None
+        else:
+            # ⭐ CREAR NUEVO REGISTRO
+            oficio = Oficio(
+                numero=folio,
+                numero_oficio=numero_oficio,
+                fecha=fecha_ingreso,
+                hora=hora,
+                numero_expediente=numero_expediente,
+                quien_emite=quien_emite,
+                con_copia_para=con_copia_para,
+                anexos=anexos,
+                gerencia_turnada=gerencia_turnada,
+                asunto=asunto,
+                prioridad=prioridad,
+                termino=termino,
+                fecha_limite=fecha_limite,
+                responsable1=responsable1,
+                responsable2=responsable2,
+                nis=nis,
+                estatus=estatus,
+                observaciones=observaciones,
+                fecha_atencion=fecha_atencion,
+                oficio_respuesta=oficio_respuesta,
+                fecha_acuse=fecha_acuse,
+                dias_atencion=dias_atencion
+            )
 
-        db.session.add(oficio)
+            # Cálculo automático
+            if fecha_ingreso and fecha_atencion and not dias_atencion:
+                try:
+                    f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                    f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                    oficio.dias_atencion = (f2 - f1).days
+                except:
+                    oficio.dias_atencion = None
+
+            db.session.add(oficio)
 
     db.session.commit()
 
