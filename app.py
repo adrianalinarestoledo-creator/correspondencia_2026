@@ -380,11 +380,14 @@ def importar_excel():
 
         df = pd.read_excel(archivo, header=1)
 
-        df.columns = df.columns.str.strip()  # ⭐ LIMPIAR ENCABEZADOS
+        # ⭐ LIMPIAR ENCABEZADOS (ESPACIOS, SALTOS, TABULACIONES)
+        df.columns = df.columns.str.strip()
 
+        # Convertir todo a string para evitar errores JSON
         df = df.astype(str)
 
-        df = df.iloc[:2696]
+        # Cortar hasta la fila 2698
+        df = df.iloc[:2698]
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
@@ -396,6 +399,7 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
+
 
 # --------------------------
 #   GUARDAR IMPORTACIÓN (RECIBE JSON)
@@ -409,8 +413,26 @@ def importar_excel_guardar():
         return jsonify({"error": "No se recibieron datos"}), 400
 
     for fila in datos:
+
+        # ⭐ LIMPIAR Y CONVERTIR CAMPOS NUMÉRICOS
+        termino_val = fila.get("TÉRMINO")
+        dias_val = fila.get("DÍAS DE ATENCIÓN")
+
+        # Convertir TÉRMINO a entero
+        try:
+            termino_val = int(float(termino_val)) if termino_val not in ["", "None", "nan"] else None
+        except:
+            termino_val = None
+
+        # Convertir DÍAS DE ATENCIÓN a entero
+        try:
+            dias_val = int(float(dias_val)) if dias_val not in ["", "None", "nan"] else None
+        except:
+            dias_val = None
+
+        # ⭐ CREAR EL REGISTRO
         nuevo = Oficio(
-            numero=fila.get("FOLIO"),  # ⭐ EL FOLIO VIENE DEL EXCEL
+            numero=fila.get("FOLIO"),
             numero_oficio=fila.get("NUMERO DE OFICIO"),
             fecha=fila.get("FECHA INGRESO"),
             hora=fila.get("HORA"),
@@ -421,7 +443,7 @@ def importar_excel_guardar():
             gerencia_turnada=fila.get("GERENCIA"),
             asunto=fila.get("ASUNTO"),
             prioridad=fila.get("PRIORIDAD"),
-            termino=fila.get("TÉRMINO"),
+            termino=termino_val,
             fecha_limite=fila.get("FECHA LÍMITE DE ATENCIÓN"),
             responsable1=fila.get("RESPONSABLE 1"),
             responsable2=fila.get("RESPONSABLE"),
@@ -431,7 +453,7 @@ def importar_excel_guardar():
             fecha_atencion=fila.get("FECHA ATENCIÓN"),
             oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
             fecha_acuse=fila.get("FECHA ACUSE DE RESPUESTA"),
-            dias_atencion=fila.get("DÍAS DE ATENCIÓN")
+            dias_atencion=dias_val
         )
 
         db.session.add(nuevo)
