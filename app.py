@@ -372,16 +372,17 @@ def responder(id):
 # --------------------------
 #   IMPORTAR EXCEL (SUBIR Y VISTA PREVIA)
 # --------------------------
+
 @app.route("/importar_excel", methods=["GET", "POST"])
 def importar_excel():
     if request.method == "POST":
         archivo = request.files["archivo"]
 
-        # ⭐ Leer Excel respetando tu estructura
         df = pd.read_excel(archivo, header=1)  # Fila 2 = encabezados
 
-        # ⭐ Convertir todo a texto para evitar errores JSON
-        df = df.astype(str)
+        df = df.astype(str)  # evitar errores JSON
+
+        df = df.iloc[:2698]  # ⭐ cortar hasta la fila 2698
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
