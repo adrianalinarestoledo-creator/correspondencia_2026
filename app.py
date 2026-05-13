@@ -393,6 +393,9 @@ def importar_excel():
 def importar_excel_guardar():
     datos = request.json
 
+    if not datos:
+        return jsonify({"error": "No se recibieron datos"}), 400
+
     for fila in datos:
         nuevo = Oficio(
             numero=fila.get("Folio SOAPAP"),
