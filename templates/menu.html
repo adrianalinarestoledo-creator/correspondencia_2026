@@ -1,9 +1,9 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm border-bottom">
+<nav class="navbar navbar-expand-lg navbar-light shadow-sm border-bottom" style="background-color: #f0f0f0;">
     <div class="container-fluid">
 
         {% set anio_actual = session.get('anio', 2026) %}
 
-        <!-- ⭐ Marca con año dinámico -->
+        <!-- ⭐ Marca institucional -->
         <a class="navbar-brand fw-bold text-primary" href="{{ url_for('lista') }}">
             📁 Correspondencia {{ anio_actual }}
         </a>
@@ -56,7 +56,7 @@
                 </li>
                 {% endif %}
 
-                <!-- ⭐ Exportaciones (todos los roles) -->
+                <!-- ⭐ Exportaciones -->
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('exportar_excel') }}">📤 Exportar Excel</a>
                 </li>
@@ -106,3 +106,4 @@
         </div>
     </div>
 </nav>
+
