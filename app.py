@@ -355,6 +355,8 @@ def atender(id):
 #   RESPONDER OFICIO
 # --------------------------
 
+from datetime import datetime
+
 @app.route("/responder/<int:id>", methods=["GET", "POST"])
 def responder(id):
     oficio = Oficio.query.get_or_404(id)
@@ -373,10 +375,12 @@ def responder(id):
 
         # ⭐ SI ES SOLUCIONADO → CERRAR OFICIO
         if nuevo_estatus == "Solucionado":
+
+            # Registrar fecha de atención si no existe
             if not oficio.fecha_atencion:
                 oficio.fecha_atencion = datetime.now().strftime("%Y-%m-%d")
 
-            # Calcular días
+            # Calcular días de atención
             if oficio.fecha and oficio.fecha_atencion:
                 try:
                     f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
