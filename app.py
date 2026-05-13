@@ -619,12 +619,13 @@ def importar_excel():
 
     return render_template("importar_excel.html")
     
- # --------------------------
-#   CONFIRMAR IMPORTACIÓN
+# --------------------------
+#   CONFIRMAR IMPORTACIÓN (C2)
 # --------------------------
 from openpyxl import load_workbook
 from datetime import datetime
 import re
+from sqlalchemy import text
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -634,8 +635,14 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
+    # ⭐ BORRAR TODA LA TABLA (C2)
+    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
+    db.session.commit()
+
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
+
+    nuevos_registros = []  # ⭐ Lista para inserción masiva
 
     # Procesar desde la fila 3
     for row in ws.iter_rows(min_row=3, values_only=True):
@@ -646,12 +653,7 @@ def confirmar_importacion():
         # MAPEO EXACTO A TU MODELO
         # -----------------------------
         folio_excel = str(row[0]).strip() if row[0] else ""
-
-        # ⭐ Si el folio viene vacío → generar uno nuevo
-        if folio_excel == "" or folio_excel.lower() == "none":
-            folio = generar_folio()
-        else:
-            folio = folio_excel
+        folio = folio_excel if folio_excel else generar_folio()
 
         fecha_ingreso = row[1]
         hora = row[3]
@@ -711,47 +713,20 @@ def confirmar_importacion():
             if len(fecha_acuse) > 20:
                 fecha_acuse = fecha_acuse[:20]
 
+        # ⭐ Cálculo automático de días de atención
+        if fecha_ingreso and fecha_atencion and dias_atencion is None:
+            try:
+                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                dias_atencion = (f2 - f1).days
+            except:
+                dias_atencion = None
+
         # -----------------------------
-        # ¿EXISTE YA ESTE FOLIO?
+        # CREAR OBJETO Y AGREGAR A LA LISTA
         # -----------------------------
-        existe = Oficio.query.filter_by(numero=folio).first()
-
-        if existe:
-            # ⭐ ACTUALIZAR REGISTRO EXISTENTE
-            existe.numero_oficio = numero_oficio
-            existe.fecha = fecha_ingreso
-            existe.hora = hora
-            existe.numero_expediente = numero_expediente
-            existe.quien_emite = quien_emite
-            existe.con_copia_para = con_copia_para
-            existe.anexos = anexos
-            existe.gerencia_turnada = gerencia_turnada
-            existe.asunto = asunto
-            existe.prioridad = prioridad
-            existe.termino = termino
-            existe.fecha_limite = fecha_limite
-            existe.responsable1 = responsable1
-            existe.responsable2 = responsable2
-            existe.nis = nis
-            existe.estatus = estatus
-            existe.observaciones = observaciones
-            existe.fecha_atencion = fecha_atencion
-            existe.oficio_respuesta = oficio_respuesta
-            existe.fecha_acuse = fecha_acuse
-            existe.dias_atencion = dias_atencion
-
-            # ⭐ Cálculo automático
-            if fecha_ingreso and fecha_atencion and dias_atencion is None:
-                try:
-                    f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                    f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
-                    existe.dias_atencion = (f2 - f1).days
-                except:
-                    existe.dias_atencion = None
-
-        else:
-            # ⭐ CREAR NUEVO REGISTRO
-            oficio = Oficio(
+        nuevos_registros.append(
+            Oficio(
                 numero=folio,
                 numero_oficio=numero_oficio,
                 fecha=fecha_ingreso,
@@ -775,18 +750,10 @@ def confirmar_importacion():
                 fecha_acuse=fecha_acuse,
                 dias_atencion=dias_atencion
             )
+        )
 
-            # ⭐ Cálculo automático
-            if fecha_ingreso and fecha_atencion and dias_atencion is None:
-                try:
-                    f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                    f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
-                    oficio.dias_atencion = (f2 - f1).days
-                except:
-                    oficio.dias_atencion = None
-
-            db.session.add(oficio)
-
+    # ⭐ INSERCIÓN MASIVA (solo un commit)
+    db.session.bulk_save_objects(nuevos_registros)
     db.session.commit()
 
     flash("Importación completada correctamente", "success")
