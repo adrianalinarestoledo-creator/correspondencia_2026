@@ -619,7 +619,7 @@ def importar_excel():
 
     return render_template("importar_excel.html")
     
-# --------------------------
+ # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
 from openpyxl import load_workbook
@@ -679,29 +679,37 @@ def confirmar_importacion():
         # -----------------------------
         # NORMALIZACIÓN DE DATOS
         # -----------------------------
-# ⭐ Normalizar término (columna U)
-if termino in ("", None, " ", "  "):
-    termino = None
-else:
-    try:
-        numeros = re.findall(r"\d+", str(termino))
-        termino = int(numeros[0]) if numeros else None
-    except:
-        termino = None
 
-# ⭐ Normalizar días de atención
-if dias_atencion in ("", None, " ", "  "):
-    dias_atencion = None
-else:
-    try:
-        dias_atencion = int(dias_atencion)
-    except:
-        dias_atencion = None
+        # ⭐ Normalizar término (columna U)
+        if termino in ("", None, " ", "  "):
+            termino = None
+        else:
+            try:
+                numeros = re.findall(r"\d+", str(termino))
+                termino = int(numeros[0]) if numeros else None
+            except:
+                termino = None
 
-# ⭐ Normalizar fecha límite
-if fecha_limite in ("", None):
-    fecha_limite = None
+        # ⭐ Normalizar días de atención
+        if dias_atencion in ("", None, " ", "  "):
+            dias_atencion = None
+        else:
+            try:
+                dias_atencion = int(dias_atencion)
+            except:
+                dias_atencion = None
 
+        # ⭐ Normalizar fecha límite
+        if fecha_limite in ("", None):
+            fecha_limite = None
+
+        # ⭐ Normalizar fecha_acuse (VARCHAR 20)
+        if fecha_acuse in ("", None, " ", "  "):
+            fecha_acuse = None
+        else:
+            fecha_acuse = str(fecha_acuse).strip()
+            if len(fecha_acuse) > 20:
+                fecha_acuse = fecha_acuse[:20]
 
         # -----------------------------
         # ¿EXISTE YA ESTE FOLIO?
@@ -732,7 +740,7 @@ if fecha_limite in ("", None):
             existe.fecha_acuse = fecha_acuse
             existe.dias_atencion = dias_atencion
 
-            # ⭐ Cálculo automático si no viene en Excel
+            # ⭐ Cálculo automático
             if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -768,7 +776,7 @@ if fecha_limite in ("", None):
                 dias_atencion=dias_atencion
             )
 
-            # ⭐ Cálculo automático si no viene en Excel
+            # ⭐ Cálculo automático
             if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -783,7 +791,7 @@ if fecha_limite in ("", None):
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-   
+  
 # --------------------------
 #   INICIO
 # --------------------------
