@@ -605,7 +605,7 @@ def importar_excel():
     return render_template("importar_excel.html")
     
 # --------------------------
-#   CONFIRMAR IMPORTACIÓN (C2)
+#   CONFIRMAR IMPORTACIÓN (C2 + LOTES)
 # --------------------------
 from openpyxl import load_workbook
 from datetime import datetime
@@ -620,25 +620,32 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
-    # ⭐ BORRAR TODA LA TABLA (C2)
+    # ⭐ BORRAR TODA LA TABLA
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    nuevos_registros = []  # ⭐ Lista para inserción masiva
+    lote = []
+    TAMANO_LOTE = 200  # ⭐ Lote pequeño para evitar timeout
+
+    contador_folio = 1  # ⭐ Folios en memoria
 
     # Procesar desde la fila 3
     for row in ws.iter_rows(min_row=3, values_only=True):
 
-        row = row[:26]  # columnas A–Z
+        row = row[:26]
 
         # -----------------------------
-        # MAPEO EXACTO A TU MODELO
+        # MAPEO
         # -----------------------------
         folio_excel = str(row[0]).strip() if row[0] else ""
-        folio = folio_excel if folio_excel else generar_folio()
+        if folio_excel:
+            folio = folio_excel
+        else:
+            folio = f"SOAPAP-2026-{contador_folio:04d}"
+            contador_folio += 1
 
         fecha_ingreso = row[1]
         hora = row[3]
@@ -664,20 +671,20 @@ def confirmar_importacion():
         dias_atencion = row[25]
 
         # -----------------------------
-        # NORMALIZACIÓN DE DATOS
+        # NORMALIZACIÓN
         # -----------------------------
 
-        # ⭐ Normalizar término (columna U)
+        # término
         if termino in ("", None, " ", "  "):
             termino = None
         else:
             try:
-                numeros = re.findall(r"\d+", str(termino))
-                termino = int(numeros[0]) if numeros else None
+                nums = re.findall(r"\d+", str(termino))
+                termino = int(nums[0]) if nums else None
             except:
                 termino = None
 
-        # ⭐ Normalizar días de atención
+        # días de atención
         if dias_atencion in ("", None, " ", "  "):
             dias_atencion = None
         else:
@@ -686,11 +693,11 @@ def confirmar_importacion():
             except:
                 dias_atencion = None
 
-        # ⭐ Normalizar fecha límite
+        # fecha límite
         if fecha_limite in ("", None):
             fecha_limite = None
 
-        # ⭐ Normalizar fecha_acuse (VARCHAR 20)
+        # fecha_acuse
         if fecha_acuse in ("", None, " ", "  "):
             fecha_acuse = None
         else:
@@ -698,7 +705,7 @@ def confirmar_importacion():
             if len(fecha_acuse) > 20:
                 fecha_acuse = fecha_acuse[:20]
 
-        # ⭐ Cálculo automático de días de atención
+        # cálculo automático
         if fecha_ingreso and fecha_atencion and dias_atencion is None:
             try:
                 f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -708,9 +715,9 @@ def confirmar_importacion():
                 dias_atencion = None
 
         # -----------------------------
-        # CREAR OBJETO Y AGREGAR A LA LISTA
+        # AGREGAR AL LOTE
         # -----------------------------
-        nuevos_registros.append(
+        lote.append(
             Oficio(
                 numero=folio,
                 numero_oficio=numero_oficio,
@@ -737,9 +744,16 @@ def confirmar_importacion():
             )
         )
 
-    # ⭐ INSERCIÓN MASIVA (solo un commit)
-    db.session.bulk_save_objects(nuevos_registros)
-    db.session.commit()
+        # ⭐ Cuando el lote llega a 200 → insertar
+        if len(lote) >= TAMANO_LOTE:
+            db.session.bulk_save_objects(lote)
+            db.session.commit()
+            lote = []  # limpiar lote
+
+    # ⭐ Insertar el último lote
+    if lote:
+        db.session.bulk_save_objects(lote)
+        db.session.commit()
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
