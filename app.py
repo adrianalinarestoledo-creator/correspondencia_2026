@@ -1,6 +1,6 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import text   # ⭐ NECESARIO PARA TRUNCATE
+from sqlalchemy import text, or_
 from datetime import datetime, timedelta
 from werkzeug.security import generate_password_hash, check_password_hash
 from io import BytesIO
@@ -8,26 +8,26 @@ import pandas as pd
 import pdfkit
 import re
 import os
-from openpyxl import load_workbook   # ⭐ NECESARIO PARA IMPORTACIÓN STREAMING
+import uuid
+from openpyxl import load_workbook
 
 app = Flask(__name__)
 
-# 🔐 Clave segura para sesiones (local + Render)
+# 🔐 Clave segura para sesiones
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "CLAVE_LOCAL_SUPER_SEGURA_2026_!_SOAPAP_987654321"
 )
 
-# 🔗 Base de datos (Render usa DATABASE_URL)
+# 🔗 Base de datos
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get("DATABASE_URL")
-
 db = SQLAlchemy(app)
 
 # --------------------------
 #   FUNCIONES DE CÁLCULO
 # --------------------------
 
-FERIADOS = []  # si luego quieres agregar días festivos, aquí van
+FERIADOS = []
 
 def sumar_dias_habiles(fecha, dias):
     contador = 0
@@ -55,12 +55,8 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     usuario = db.Column(db.String(50), unique=True, nullable=False)
     password_hash = db.Column(db.String(200), nullable=False)
-    rol = db.Column(db.String(50), nullable=False)  # admin, admin_limited, gerencia
-
-    # ⭐ Campo que existía en PostgreSQL pero faltaba en tu modelo
+    rol = db.Column(db.String(50), nullable=False)
     gerencia = db.Column(db.String(50))
-
-    # Controles empresariales
     activo = db.Column(db.Boolean, default=True)
     debe_cambiar_password = db.Column(db.Boolean, default=False)
     ultimo_cambio_password = db.Column(db.DateTime)
@@ -82,11 +78,9 @@ class Usuario(db.Model):
 
 class Oficio(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-
-    # Datos del oficio
-    numero = db.Column(db.String(50))            # Folio SOAPAP-00001
+    numero = db.Column(db.String(50))
     numero_oficio = db.Column(db.String(100))
-    fecha = db.Column(db.String(20))             # YYYY-MM-DD
+    fecha = db.Column(db.String(20))
     hora = db.Column(db.String(20))
     numero_expediente = db.Column(db.String(100))
     quien_emite = db.Column(db.String(200))
@@ -100,182 +94,12 @@ class Oficio(db.Model):
     responsable1 = db.Column(db.String(200))
     responsable2 = db.Column(db.String(200))
     nis = db.Column(db.String(50))
-
-    # Respuesta de gerencias
     estatus = db.Column(db.String(50))
     observaciones = db.Column(db.Text)
     fecha_atencion = db.Column(db.String(20))
     oficio_respuesta = db.Column(db.String(200))
     fecha_acuse = db.Column(db.String(20))
-
-    # Campo calculado
     dias_atencion = db.Column(db.Integer)
-TAMANO_BLOQUE = 500  # filas por bloque
-
-@app.route("/confirmar_importacion", methods=["POST"])
-def confirmar_importacion():
-
-    file_path = session.get("excel_temp_file")
-    if not file_path:
-        flash("No se encontró archivo para importar", "danger")
-        return redirect(url_for("importar_excel"))
-
-    # TRUNCATE SOLO UNA VEZ
-    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
-    db.session.commit()
-
-    # Cargar Excel
-    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
-    ws = wb.active
-
-    # Guardar total de filas y estado inicial
-    total_filas = ws.max_row
-    session["total_filas"] = total_filas
-    session["fila_actual"] = 3          # empezamos en fila 3 (A3)
-    session["contador_folio"] = 1       # folios generados en memoria
-
-    # Procesar primer bloque
-    procesar_bloque(ws)
-
-    return render_template(
-        "continuar_importacion.html",
-        procesadas=session["fila_actual"] - 3,
-        total=total_filas - 2
-    )
-
-
-def procesar_bloque(ws):
-    fila_inicio = session["fila_actual"]
-    fila_fin = fila_inicio + TAMANO_BLOQUE - 1
-
-    insert_sql = text("""
-        INSERT INTO oficio (
-            numero, numero_oficio, fecha, hora, numero_expediente,
-            quien_emite, con_copia_para, anexos, gerencia_turnada,
-            asunto, prioridad, termino, fecha_limite, responsable1,
-            responsable2, nis, estatus, observaciones, fecha_atencion,
-            oficio_respuesta, fecha_acuse, dias_atencion
-        )
-        VALUES (
-            :numero, :numero_oficio, :fecha, :hora, :numero_expediente,
-            :quien_emite, :con_copia_para, :anexos, :gerencia_turnada,
-            :asunto, :prioridad, :termino, :fecha_limite, :responsable1,
-            :responsable2, :nis, :estatus, :observaciones, :fecha_atencion,
-            :oficio_respuesta, :fecha_acuse, :dias_atencion
-        )
-    """)
-
-    lote = []
-    contador_folio = session.get("contador_folio", 1)
-
-    for row in ws.iter_rows(min_row=fila_inicio, max_row=fila_fin, values_only=True):
-        if not row:
-            continue
-
-        row = row[:26]
-
-        # Folio
-        folio_excel = str(row[0]).strip() if row[0] else ""
-        if folio_excel:
-            folio = folio_excel
-        else:
-            folio = f"SOAPAP-2026-{contador_folio:04d}"
-            contador_folio += 1
-
-        fecha_ingreso = row[1]
-        hora = row[3]
-        numero_oficio = row[4]
-        fecha_emision = row[5]
-        quien_emite = row[6]
-        numero_expediente = row[7]
-        con_copia_para = row[8]
-        asunto = row[9]
-        anexos = row[10]
-        gerencia_turnada = row[11]
-        prioridad = row[12]
-        responsable1 = row[13]
-        responsable2 = row[14]
-        nis = row[15]
-        estatus = row[17]
-        observaciones = row[19]
-        termino = row[20]
-        fecha_limite = row[21]
-        fecha_atencion = row[22]
-        oficio_respuesta = row[23]
-        fecha_acuse = row[24]
-        dias_atencion = row[25]
-
-        # Normalizar término
-        if termino in ("", None, " ", "  "):
-            termino = None
-        else:
-            try:
-                nums = re.findall(r"\d+", str(termino))
-                termino = int(nums[0]) if nums else None
-            except:
-                termino = None
-
-        # Normalizar días de atención
-        if dias_atencion in ("", None, " ", "  "):
-            dias_atencion = None
-        else:
-            try:
-                dias_atencion = int(dias_atencion)
-            except:
-                dias_atencion = None
-
-        # Normalizar fecha límite
-        if fecha_limite in ("", None):
-            fecha_limite = None
-
-        # Normalizar fecha_acuse (VARCHAR 20)
-        if fecha_acuse in ("", None, " ", "  "):
-            fecha_acuse = None
-        else:
-            fecha_acuse = str(fecha_acuse).strip()
-            if len(fecha_acuse) > 20:
-                fecha_acuse = fecha_acuse[:20]
-
-        # Cálculo automático de días de atención
-        if fecha_ingreso and fecha_atencion and dias_atencion is None:
-            try:
-                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
-                dias_atencion = (f2 - f1).days
-            except:
-                dias_atencion = None
-
-        lote.append({
-            "numero": folio,
-            "numero_oficio": numero_oficio,
-            "fecha": fecha_ingreso,
-            "hora": hora,
-            "numero_expediente": numero_expediente,
-            "quien_emite": quien_emite,
-            "con_copia_para": con_copia_para,
-            "anexos": anexos,
-            "gerencia_turnada": gerencia_turnada,
-            "asunto": asunto,
-            "prioridad": prioridad,
-            "termino": termino,
-            "fecha_limite": fecha_limite,
-            "responsable1": responsable1,
-            "responsable2": responsable2,
-            "nis": nis,
-            "estatus": estatus,
-            "observaciones": observaciones,
-            "fecha_atencion": fecha_atencion,
-            "oficio_respuesta": oficio_respuesta,
-            "fecha_acuse": fecha_acuse,
-            "dias_atencion": dias_atencion
-        })
-
-    if lote:
-        db.session.execute(insert_sql, lote)
-        db.session.commit()
-
-    session["fila_actual"] = fila_fin + 1
-    session["contador_folio"] = contador_folio
 
 # --------------------------
 #   VALIDACIÓN DE PASSWORD
@@ -283,52 +107,55 @@ def procesar_bloque(ws):
 
 def password_segura(pwd):
     reglas = [
-        r".{8,}",          # mínimo 8 caracteres
-        r"[A-Z]",          # al menos una mayúscula
-        r"[a-z]",          # al menos una minúscula
-        r"[0-9]",          # al menos un número
-        r"[^A-Za-z0-9]"    # al menos un símbolo
+        r".{8,}",
+        r"[A-Z]",
+        r"[a-z]",
+        r"[0-9]",
+        r"[^A-Za-z0-9]"
     ]
     return all(re.search(r, pwd) for r in reglas)
 
 # --------------------------
-#   INICIALIZAR BD Y USUARIOS
+#   INICIALIZAR BD
 # --------------------------
 
 with app.app_context():
     db.create_all()
+# --------------------------
+#   MODELO DE OFICIOS
+# --------------------------
 
-    usuarios_iniciales = [
-        ("admin", "Admin_2026!Segura", "admin"),
-        ("GAL", "Gal_2026#Firme", "gerencia"),
-        ("GAL-Despacho", "Despacho_2026$Clave", "gerencia"),
-        ("GAF", "Gaf_2026*Control", "gerencia"),
-        ("GSMA", "Gsma_2026@Gestion", "gerencia"),
-        ("GPSOI", "Gpsoi_2026%Operacion", "gerencia"),
-        ("GSTS", "Gsts_2026&Servicio", "gerencia"),
-        ("DG", "Dg_2026+Direccion", "gerencia"),
-    ]
+class Oficio(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    numero = db.Column(db.String(50))  # Folio SOAPAP
+    numero_oficio = db.Column(db.String(100))  # Número de oficio externo
+    fecha = db.Column(db.String(20))
+    hora = db.Column(db.String(20))
+    numero_expediente = db.Column(db.String(100))
+    quien_emite = db.Column(db.String(200))
+    con_copia_para = db.Column(db.String(200))
+    anexos = db.Column(db.String(200))
+    gerencia_turnada = db.Column(db.String(50))
+    asunto = db.Column(db.String(500))
+    prioridad = db.Column(db.String(20))
+    termino = db.Column(db.Integer)
+    fecha_limite = db.Column(db.String(20))
+    responsable1 = db.Column(db.String(200))
+    responsable2 = db.Column(db.String(200))
+    nis = db.Column(db.String(50))
+    estatus = db.Column(db.String(50), default="Pendiente")
+    fecha_atencion = db.Column(db.String(20))
+    dias_atencion = db.Column(db.Integer)
+    oficio_respuesta = db.Column(db.String(200))
+    fecha_acuse = db.Column(db.String(20))
+    observaciones = db.Column(db.String(500))
 
-    for u, pwd, rol in usuarios_iniciales:
-        existente = Usuario.query.filter_by(usuario=u).first()
-        if not existente:
-            nuevo_u = Usuario(
-                usuario=u,
-                rol=rol,
-                creado_por="sistema",
-                creado_en=datetime.utcnow(),
-                activo=True
-            )
-            nuevo_u.set_password(pwd, quien="sistema")
-            db.session.add(nuevo_u)
-    db.session.commit()
 
 # --------------------------
-#   LOGIN / LOGOUT
+#   LOGIN
 # --------------------------
-from datetime import datetime
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         usuario = request.form["usuario"]
@@ -336,306 +163,132 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-        if user and user.check_password(password) and user.activo:
-
-            session.clear()
-
+        if user and user.password == password:
             session["usuario"] = user.usuario
             session["rol"] = user.rol
-            session["gerencia"] = user.gerencia
-
-            # ⭐ Año automático
-            session["anio"] = datetime.now().year
-
+            session["gerencia"] = user.usuario
             return redirect(url_for("lista"))
 
-        flash("Usuario o contraseña incorrectos o usuario inactivo", "danger")
+        return render_template("login.html", error="Usuario o contraseña incorrectos")
 
     return render_template("login.html")
 
+
+# --------------------------
+#   LOGOUT
+# --------------------------
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# --------------------------
-#   GENERAR FOLIO (C2)
-# --------------------------
-contador_folio = 1  # contador en memoria
 
-def generar_folio():
-    global contador_folio
-    folio = f"SOAPAP-2026-{contador_folio:04d}"
-    contador_folio += 1
-    return folio
-
-
-# --------------------------
-#   PROTEGER RUTAS
-# --------------------------
-
-@app.before_request
-def proteger():
-    rutas_publicas = ["login", "static"]
-    if request.endpoint not in rutas_publicas and "gerencia" not in session:
-        return redirect(url_for("login"))
-
-# --------------------------
-#   MÓDULO DE USUARIOS
-# --------------------------
-
-@app.route("/usuarios")
-def usuarios():
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
-    lista = Usuario.query.all()
-    return render_template("usuarios.html", usuarios=lista)
-
-@app.route("/usuarios/nuevo", methods=["GET", "POST"])
-def usuarios_nuevo():
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
-
-    if request.method == "POST":
-        usuario = request.form["usuario"]
-        password = request.form["password"]
-        rol = request.form["rol"]
-
-        if not password_segura(password):
-            return "La contraseña no cumple los requisitos de seguridad."
-
-        u = Usuario(
-            usuario=usuario,
-            rol=rol,
-            creado_por=session.get("gerencia"),
-            creado_en=datetime.utcnow(),
-            activo=True
-        )
-        u.set_password(password, quien=session.get("gerencia"))
-        db.session.add(u)
-        db.session.commit()
-        return redirect(url_for("usuarios"))
-
-    return render_template("usuarios_nuevo.html")
-
-@app.route("/usuarios/editar/<int:id>", methods=["GET", "POST"])
-def usuarios_editar(id):
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
-
-    u = Usuario.query.get(id)
-
-    if request.method == "POST":
-        nuevo_password = request.form["password"]
-        rol = request.form["rol"]
-        activo = True if request.form.get("activo") == "on" else False
-
-        u.rol = rol
-        u.activo = activo
-        u.modificado_por = session.get("gerencia")
-        u.modificado_en = datetime.utcnow()
-
-        if nuevo_password.strip():
-            if not password_segura(nuevo_password):
-                return "La contraseña no cumple los requisitos de seguridad."
-            u.set_password(nuevo_password, quien=session.get("gerencia"))
-
-        db.session.commit()
-        return redirect(url_for("usuarios"))
-
-    return render_template("usuarios_editar.html", usuario=u)
-
-@app.route("/usuarios/bloquear/<int:id>")
-def usuarios_bloquear(id):
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
-    u = Usuario.query.get(id)
-    u.activo = not u.activo
-    u.modificado_por = session.get("gerencia")
-    u.modificado_en = datetime.utcnow()
-    db.session.commit()
-    return redirect(url_for("usuarios"))
 # --------------------------
 #   REGISTRO DE OFICIOS (ADMIN)
 # --------------------------
+
 @app.route("/nuevo", methods=["GET", "POST"])
 def nuevo():
-    if session.get("rol") not in ["admin", "superadmin"]:
-        return "Acceso no autorizado", 403
+    if "rol" not in session or session["rol"] != "admin":
+        return "Solo el admin puede registrar oficios"
+
+    if request.method == "GET":
+        folio_generado = generar_folio()
+        return render_template("nuevo.html", folio_generado=folio_generado)
 
     if request.method == "POST":
-        anio = session.get("anio")
+        folio = request.form["folio"]
+        numero_oficio = request.form["numero_oficio"]
 
-        folio = generar_folio(anio)
+        fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d")
+        hora = request.form["hora"]
+        numero_expediente = request.form["numero_expediente"]
+        quien_emite = request.form["quien_emite"]
+        con_copia_para = request.form["con_copia_para"]
+        anexos = request.form["anexos"]
+        gerencia_turnada = request.form["gerencia_turnada"]
+        asunto = request.form["asunto"]
+        prioridad = request.form["prioridad"]
+        responsable1 = request.form["responsable1"]
+        responsable2 = request.form["responsable2"]
+        nis = request.form["nis"]
 
-        oficio = Oficio(
+        # Cálculo de fecha límite
+        if prioridad == "Urgente":
+            fecha_limite = sumar_dias_habiles(fecha, 1)
+        elif prioridad == "Alta":
+            fecha_limite = sumar_dias_habiles(fecha, 3)
+        elif prioridad == "Media":
+            fecha_limite = sumar_dias_habiles(fecha, 15)
+        elif prioridad == "Baja":
+            fecha_limite = sumar_dias_habiles(fecha, 30)
+        else:
+            fecha_limite = None
+
+        fecha_limite_str = fecha_limite.strftime("%Y-%m-%d") if fecha_limite else ""
+
+        nuevo = Oficio(
             numero=folio,
-            numero_oficio=request.form.get("numero_oficio"),
-            fecha=request.form.get("fecha"),
-            hora=request.form.get("hora"),
-            numero_expediente=request.form.get("numero_expediente"),
-            quien_emite=request.form.get("quien_emite"),
-            con_copia_para=request.form.get("con_copia_para"),
-            anexos=request.form.get("anexos"),
-            gerencia_turnada=request.form.get("gerencia_turnada"),
-            asunto=request.form.get("asunto"),
-            prioridad=request.form.get("prioridad"),
-            termino=int(request.form.get("termino") or 0),
-            fecha_limite=request.form.get("fecha_limite"),
-            responsable1=request.form.get("responsable1"),
-            responsable2=request.form.get("responsable2"),
-            nis=request.form.get("nis"),
-            estatus="Pendiente",
+            numero_oficio=numero_oficio,
+            fecha=fecha.strftime("%Y-%m-%d"),
+            hora=hora,
+            numero_expediente=numero_expediente,
+            quien_emite=quien_emite,
+            con_copia_para=con_copia_para,
+            anexos=anexos,
+            gerencia_turnada=gerencia_turnada,
+            asunto=asunto,
+            prioridad=prioridad,
+            termino=0,
+            fecha_limite=fecha_limite_str,
+            responsable1=responsable1,
+            responsable2=responsable2,
+            nis=nis
         )
 
-        db.session.add(oficio)
+        db.session.add(nuevo)
         db.session.commit()
 
-        flash(f"Oficio registrado con folio {folio}", "success")
         return redirect(url_for("lista"))
 
     return render_template("nuevo.html")
 
+
 # --------------------------
 #   LISTA DE OFICIOS
 # --------------------------
-from sqlalchemy import or_
 
 @app.route("/lista")
 def lista():
-    # ⭐ Cambio de año desde menú
-    anio_param = request.args.get("anio", type=int)
-    if anio_param:
-        session["anio"] = anio_param
+    page = request.args.get("page", 1, type=int)
 
-    anio = session.get("anio")
-    rol = session.get("rol")
-    gerencia = session.get("gerencia")
+    q = request.args.get("q", "")
+    gerencia_filtro = request.args.get("gerencia", "")
+    estatus_filtro = request.args.get("estatus", "")
 
     consulta = Oficio.query
 
-    # ⭐ Filtrar por año automáticamente
-    consulta = consulta.filter(Oficio.fecha.like(f"{anio}-%"))
+    if session.get("rol") != "admin":
+        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
 
-    # ⭐ BUSCADOR GENERAL (folio, NIS, número de oficio)
-    q = request.args.get("q")
     if q:
         consulta = consulta.filter(
-            or_(
-                Oficio.numero.ilike(f"%{q}%"),          # Folio SOAPAP-00001
-                Oficio.nis.ilike(f"%{q}%"),             # NIS
-                Oficio.numero_oficio.ilike(f"%{q}%")    # Número de oficio externo
-            )
+            (Oficio.asunto.ilike(f"%{q}%")) |
+            (Oficio.numero.ilike(f"%{q}%")) |
+            (Oficio.numero_oficio.ilike(f"%{q}%"))
         )
 
-    # ⭐ Filtros opcionales
-    gerencia_f = request.args.get("gerencia")
-    estatus_f = request.args.get("estatus")
-    fecha_f = request.args.get("fecha")
+    if gerencia_filtro:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
 
-    if gerencia_f:
-        consulta = consulta.filter_by(gerencia_turnada=gerencia_f)
+    if estatus_filtro:
+        consulta = consulta.filter_by(estatus=estatus_filtro)
 
-    if estatus_f:
-        consulta = consulta.filter_by(estatus=estatus_f)
-
-    if fecha_f:
-        consulta = consulta.filter_by(fecha=fecha_f)
-
-    # ⭐ Permisos por rol
-    if rol not in ["admin", "superadmin", "admin_limited"]:
-
-        if gerencia == "GAL":
-            consulta = consulta.filter(
-                or_(
-                    Oficio.gerencia_turnada == "GAL",
-                    Oficio.gerencia_turnada == "GAL-Despacho"
-                )
-            )
-
-        elif gerencia == "GAL-Despacho":
-            consulta = consulta.filter_by(gerencia_turnada="GAL-Despacho")
-
-        else:
-            consulta = consulta.filter_by(gerencia_turnada=gerencia)
-
-    # ⭐ Orden final
-    oficios = consulta.order_by(Oficio.id.desc()).all()
+    oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
 
     return render_template("lista.html", oficios=oficios)
 
-from flask import flash
-
-# --------------------------
-#   RESPONDER OFICIO
-# --------------------------
-@app.route("/responder/<int:id>", methods=["GET", "POST"])
-def responder(id):
-    oficio = Oficio.query.get_or_404(id)
-
-    rol = session.get("rol")
-    gerencia = session.get("gerencia")
-
-    # ⭐ 1. Validación de permisos
-    # ADMINISTRADOR: puede editar cualquier oficio, incluso solucionado
-    if rol in ["admin", "superadmin"]:
-        tiene_permiso = True
-
-    # GERENCIAS: solo pueden responder sus turnados
-    else:
-        # Caso especial GAL
-        if gerencia == "GAL":
-            tiene_permiso = oficio.gerencia_turnada in ["GAL", "GAL-Despacho"]
-        else:
-            tiene_permiso = (oficio.gerencia_turnada == gerencia)
-
-        # ⭐ Las gerencias NO pueden modificar un oficio solucionado
-        if oficio.estatus == "Solucionado":
-            return "Este oficio ya está finalizado y no puede modificarse por la gerencia.", 403
-
-    if not tiene_permiso:
-        return "Acceso no autorizado", 403
-
-    # ⭐ 2. Procesar respuesta
-    if request.method == "POST":
-
-        nuevo_estatus = request.form.get("estatus")
-
-        # ⭐ 2.1 Si es gerencia, NO puede cambiar un solucionado
-        if rol not in ["admin", "superadmin"] and oficio.estatus == "Solucionado":
-            return "Este oficio ya está finalizado y no puede modificarse por la gerencia.", 403
-
-        # ⭐ 2.2 Guardar estatus
-        oficio.estatus = nuevo_estatus
-
-        # ⭐ 2.3 Guardar campos adicionales solo si aplica
-        if nuevo_estatus in ["En proceso", "En acuerdo"]:
-            oficio.observaciones = request.form.get("observaciones")
-            oficio.fecha_atencion = request.form.get("fecha_atencion")
-            oficio.oficio_respuesta = request.form.get("oficio_respuesta")
-            oficio.fecha_acuse = request.form.get("fecha_acuse")
-        else:
-            # Pendiente o Solucionado → guardar lo que venga
-            oficio.observaciones = request.form.get("observaciones")
-            oficio.fecha_atencion = request.form.get("fecha_atencion")
-            oficio.oficio_respuesta = request.form.get("oficio_respuesta")
-            oficio.fecha_acuse = request.form.get("fecha_acuse")
-
-        # ⭐ 2.4 Calcular días de atención
-        if oficio.fecha and oficio.fecha_atencion:
-            try:
-                f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
-                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
-                oficio.dias_atencion = (f2 - f1).days
-            except:
-                oficio.dias_atencion = None
-
-        db.session.commit()
-        flash("Respuesta guardada correctamente", "success")
-        return redirect(url_for("lista"))
-
-    return render_template("responder.html", oficio=oficio)
 
 # --------------------------
 #   EXPORTAR A EXCEL
@@ -654,15 +307,13 @@ def exportar_excel():
     data = []
     for o in oficios:
         data.append({
-            "Folio SOAPAP": o.numero,                     # ⭐ Folio institucional
-            "Número de oficio externo": o.numero_oficio,  # ⭐ Nuevo campo
+            "Folio SOAPAP": o.numero,
+            "Número de oficio externo": o.numero_oficio,
             "Fecha": o.fecha,
             "Hora": o.hora,
             "Número expediente": o.numero_expediente,
             "Quien emite": o.quien_emite,
-            "Con copia para": o.con_copia_para,
-            "Anexos": o.anexos,
-            "Gerencia turnada": o.gerencia_turnada,
+            "Gerencia": o.gerencia_turnada,
             "Asunto": o.asunto,
             "Prioridad": o.prioridad,
             "Fecha límite": o.fecha_limite,
@@ -690,6 +341,7 @@ def exportar_excel():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
+
 # --------------------------
 #   EXPORTAR A PDF
 # --------------------------
@@ -713,368 +365,163 @@ def exportar_pdf():
         download_name="oficios.pdf",
         mimetype="application/pdf"
     )
-    
+
+
 # --------------------------
-#   IMPORTAR EXCEL (STREAMING)
+#   VER OFICIO
 # --------------------------
 
-import uuid
-import os
-from openpyxl import load_workbook
+@app.route("/ver/<int:id>")
+def ver(id):
+    oficio = Oficio.query.get_or_404(id)
+    return render_template("ver.html", oficio=oficio)
+
+
+# --------------------------
+#   ATENDER OFICIO
+# --------------------------
+
+@app.route("/atender/<int:id>", methods=["POST"])
+def atender(id):
+    oficio = Oficio.query.get_or_404(id)
+
+    oficio.estatus = "Atendido"
+    oficio.fecha_atencion = datetime.now().strftime("%Y-%m-%d")
+
+    fecha_ingreso = datetime.strptime(oficio.fecha, "%Y-%m-%d")
+    fecha_atencion = datetime.now()
+    oficio.dias_atencion = (fecha_atencion - fecha_ingreso).days
+
+    db.session.commit()
+
+    return redirect(url_for("lista"))
+
+
+# --------------------------
+#   RESPONDER OFICIO
+# --------------------------
+
+@app.route("/responder/<int:id>", methods=["GET", "POST"])
+def responder(id):
+    oficio = Oficio.query.get_or_404(id)
+
+    if request.method == "POST":
+        oficio.oficio_respuesta = request.form["oficio_respuesta"]
+        oficio.fecha_acuse = request.form["fecha_acuse"]
+        oficio.observaciones = request.form["observaciones"]
+
+        db.session.commit()
+        return redirect(url_for("lista"))
+
+    return render_template("responder.html", oficio=oficio)
+
+
+# --------------------------
+#   IMPORTAR EXCEL
+# --------------------------
 
 @app.route("/importar_excel", methods=["GET", "POST"])
 def importar_excel():
-    if session.get("rol") != "admin":
-        return "Acceso restringido"
-
     if request.method == "POST":
-        archivo = request.files.get("archivo")
+        archivo = request.files["archivo"]
+        df = pd.read_excel(archivo)
 
-        if not archivo:
-            return "No se subió archivo"
+        datos = df.to_dict(orient="records")
 
-        # ⭐ Guardar archivo Excel real (.xlsx)
-        temp_id = str(uuid.uuid4())
-        filename = f"excel_{temp_id}.xlsx"
-        temp_path = os.path.join("uploads", filename)
-
-        os.makedirs("uploads", exist_ok=True)
-        archivo.save(temp_path)
-
-        # ⭐ Cargar solo para vista previa (streaming)
-        wb = load_workbook(filename=temp_path, read_only=True, data_only=True)
-        ws = wb.active
-
-        # Encabezados reales en fila 2
-        raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
-        headers = [str(h).strip().upper() if h else "" for h in raw_headers]
-
-        # Vista previa: primeras 20 filas
-        preview = []
-        for i, row in enumerate(ws.iter_rows(min_row=3), start=1):
-            if i > 20:
-                break
-
-            fila = {}
-            for h, cell in zip(headers, row):
-                fila[h] = cell.value
-            preview.append(fila)
-
-        # Guardar ruta del archivo para confirmar_importacion
-        session["excel_temp_file"] = temp_path
-
-        return render_template(
-            "importar_excel_preview.html",
-            preview=preview,
-            columnas=headers
-        )
+        return render_template("importar_excel_preview.html", datos=datos)
 
     return render_template("importar_excel.html")
+
+
 # --------------------------
-#   CONFIRMACIÓN DE IMPORTACION
-# --------------------------   
-TAMANO_BLOQUE = 500  # filas por bloque
+#   GUARDAR IMPORTACIÓN
+# --------------------------
 
-@app.route("/confirmar_importacion", methods=["POST"])
-def confirmar_importacion():
+@app.route("/importar_excel_guardar", methods=["POST"])
+def importar_excel_guardar():
+    datos = request.json
 
-    file_path = session.get("excel_temp_file")
-    if not file_path:
-        flash("No se encontró archivo para importar", "danger")
-        return redirect(url_for("importar_excel"))
+    for fila in datos:
+        nuevo = Oficio(
+            numero=fila.get("Folio SOAPAP"),
+            numero_oficio=fila.get("Número de oficio externo"),
+            fecha=fila.get("Fecha"),
+            hora=fila.get("Hora"),
+            numero_expediente=fila.get("Número expediente"),
+            quien_emite=fila.get("Quien emite"),
+            gerencia_turnada=fila.get("Gerencia"),
+            asunto=fila.get("Asunto"),
+            prioridad=fila.get("Prioridad"),
+            fecha_limite=fila.get("Fecha límite"),
+            responsable1=fila.get("Responsable Director"),
+            responsable2=fila.get("Responsable Gerente"),
+            nis=fila.get("NIS"),
+            estatus=fila.get("Estatus"),
+            fecha_atencion=fila.get("Fecha atención"),
+            dias_atencion=fila.get("Días atención"),
+            oficio_respuesta=fila.get("Oficio respuesta"),
+            fecha_acuse=fila.get("Fecha acuse"),
+            observaciones=fila.get("Observaciones")
+        )
 
-    # TRUNCATE SOLO UNA VEZ
-    db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
+        db.session.add(nuevo)
+
     db.session.commit()
 
-    # Cargar Excel
-    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
-    ws = wb.active
+    return jsonify({"mensaje": "Importación completada"})
 
-    # Guardar total de filas y estado inicial
-    total_filas = ws.max_row
-    session["total_filas"] = total_filas
-    session["fila_actual"] = 3          # empezamos en fila 3 (A3)
-    session["contador_folio"] = 1       # folios generados en memoria
-
-    # Procesar primer bloque
-    procesar_bloque(ws)
-
-    return render_template(
-        "continuar_importacion.html",
-        procesadas=session["fila_actual"] - 3,
-        total=total_filas - 2
-    )
-
-
-def procesar_bloque(ws):
-    fila_inicio = session["fila_actual"]
-    fila_fin = fila_inicio + TAMANO_BLOQUE - 1
-
-    insert_sql = text("""
-        INSERT INTO oficio (
-            numero, numero_oficio, fecha, hora, numero_expediente,
-            quien_emite, con_copia_para, anexos, gerencia_turnada,
-            asunto, prioridad, termino, fecha_limite, responsable1,
-            responsable2, nis, estatus, observaciones, fecha_atencion,
-            oficio_respuesta, fecha_acuse, dias_atencion
-        )
-        VALUES (
-            :numero, :numero_oficio, :fecha, :hora, :numero_expediente,
-            :quien_emite, :con_copia_para, :anexos, :gerencia_turnada,
-            :asunto, :prioridad, :termino, :fecha_limite, :responsable1,
-            :responsable2, :nis, :estatus, :observaciones, :fecha_atencion,
-            :oficio_respuesta, :fecha_acuse, :dias_atencion
-        )
-    """)
-
-    lote = []
-    contador_folio = session.get("contador_folio", 1)
-
-    for row in ws.iter_rows(min_row=fila_inicio, max_row=fila_fin, values_only=True):
-        if not row:
-            continue
-
-        row = row[:26]
-
-        # Folio
-        folio_excel = str(row[0]).strip() if row[0] else ""
-        if folio_excel:
-            folio = folio_excel
-        else:
-            folio = f"SOAPAP-2026-{contador_folio:04d}"
-            contador_folio += 1
-
-        fecha_ingreso = row[1]
-        hora = row[3]
-        numero_oficio = row[4]
-        fecha_emision = row[5]
-        quien_emite = row[6]
-        numero_expediente = row[7]
-        con_copia_para = row[8]
-        asunto = row[9]
-        anexos = row[10]
-        gerencia_turnada = row[11]
-        prioridad = row[12]
-        responsable1 = row[13]
-        responsable2 = row[14]
-        nis = row[15]
-        estatus = row[17]
-        observaciones = row[19]
-        termino = row[20]
-        fecha_limite = row[21]
-        fecha_atencion = row[22]
-        oficio_respuesta = row[23]
-        fecha_acuse = row[24]
-        dias_atencion = row[25]
-
-        # Normalizar término
-        if termino in ("", None, " ", "  "):
-            termino = None
-        else:
-            try:
-                nums = re.findall(r"\d+", str(termino))
-                termino = int(nums[0]) if nums else None
-            except:
-                termino = None
-
-        # Normalizar días de atención
-        if dias_atencion in ("", None, " ", "  "):
-            dias_atencion = None
-        else:
-            try:
-                dias_atencion = int(dias_atencion)
-            except:
-                dias_atencion = None
-
-        # Normalizar fecha límite
-        if fecha_limite in ("", None):
-            fecha_limite = None
-
-        # Normalizar fecha_acuse (VARCHAR 20)
-        if fecha_acuse in ("", None, " ", "  "):
-            fecha_acuse = None
-        else:
-            fecha_acuse = str(fecha_acuse).strip()
-            if len(fecha_acuse) > 20:
-                fecha_acuse = fecha_acuse[:20]
-
-        # Cálculo automático de días de atención
-        if fecha_ingreso and fecha_atencion and dias_atencion is None:
-            try:
-                f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
-                f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
-                dias_atencion = (f2 - f1).days
-            except:
-                dias_atencion = None
-
-        lote.append({
-            "numero": folio,
-            "numero_oficio": numero_oficio,
-            "fecha": fecha_ingreso,
-            "hora": hora,
-            "numero_expediente": numero_expediente,
-            "quien_emite": quien_emite,
-            "con_copia_para": con_copia_para,
-            "anexos": anexos,
-            "gerencia_turnada": gerencia_turnada,
-            "asunto": asunto,
-            "prioridad": prioridad,
-            "termino": termino,
-            "fecha_limite": fecha_limite,
-            "responsable1": responsable1,
-            "responsable2": responsable2,
-            "nis": nis,
-            "estatus": estatus,
-            "observaciones": observaciones,
-            "fecha_atencion": fecha_atencion,
-            "oficio_respuesta": oficio_respuesta,
-            "fecha_acuse": fecha_acuse,
-            "dias_atencion": dias_atencion
-        })
-
-    if lote:
-        db.session.execute(insert_sql, lote)
-        db.session.commit()
-
-    session["fila_actual"] = fila_fin + 1
-    session["contador_folio"] = contador_folio
-
-
-@app.route("/continuar_importacion")
-def continuar_importacion():
-
-    file_path = session.get("excel_temp_file")
-    if not file_path:
-        flash("No se encontró archivo para continuar la importación", "danger")
-        return redirect(url_for("importar_excel"))
-
-    wb = load_workbook(filename=file_path, read_only=True, data_only=True)
-    ws = wb.active
-
-    total = session.get("total_filas", ws.max_row)
-    actual = session.get("fila_actual", 3)
-
-    if actual >= total:
-        flash("Importación completada correctamente", "success")
-        return redirect(url_for("lista"))
-
-    procesar_bloque(ws)
-
-    return render_template(
-        "continuar_importacion.html",
-        procesadas=session["fila_actual"] - 3,
-        total=total - 2
-    )
 
 # --------------------------
-#   INICIO
+#   INICIO DEL SERVIDOR
 # --------------------------
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
+# --------------------------
+#   DASHBOARD
+# --------------------------
 
-@app.route('/dashboard')
+@app.route("/dashboard")
 def dashboard():
+    if "gerencia" not in session:
+        return redirect(url_for("login"))
 
-    # ============================
-    # 1. Obtener todos los oficios
-    # ============================
-    oficios = Oficio.query.all()
+    # Si es admin ve todo, si no solo su gerencia
+    if session.get("rol") == "admin":
+        oficios = Oficio.query.all()
+    else:
+        oficios = Oficio.query.filter_by(gerencia_turnada=session["gerencia"]).all()
 
-    # ============================
-    # 2. KPIs generales
-    # ============================
-    total_recibidos = len(oficios)
-    total_atendidos = sum(1 for o in oficios if o.estatus == "Solucionado")
-    total_pendientes = total_recibidos - total_atendidos
+    total = len(oficios)
+    atendidos = len([o for o in oficios if o.estatus == "Atendido"])
+    pendientes = len([o for o in oficios if o.estatus != "Atendido"])
 
-    porcentaje_cumplimiento = 0
-    if total_recibidos > 0:
-        porcentaje_cumplimiento = round((total_atendidos / total_recibidos) * 100, 1)
-
-    # ============================
-    # 3. Tabla por gerencia
-    # ============================
-    gerencias = {}
+    # Por gerencia
+    por_gerencia = {}
     for o in oficios:
-        g = o.gerencia_turnada or "SIN GERENCIA"
+        g = o.gerencia_turnada
+        por_gerencia[g] = por_gerencia.get(g, 0) + 1
 
-        if g not in gerencias:
-            gerencias[g] = {
-                "recibidos": 0,
-                "atendidos": 0,
-                "pendientes": 0,
-                "dias": []
-            }
+    # Por prioridad
+    por_prioridad = {}
+    for o in oficios:
+        p = o.prioridad
+        por_prioridad[p] = por_prioridad.get(p, 0) + 1
 
-        gerencias[g]["recibidos"] += 1
-
-        if o.estatus == "Solucionado":
-            gerencias[g]["atendidos"] += 1
-            if o.dias_atencion:
-                gerencias[g]["dias"].append(o.dias_atencion)
-        else:
-            gerencias[g]["pendientes"] += 1
-
-    # Convertir a lista para la tabla
-    tabla_gerencias = []
-    for g, datos in gerencias.items():
-        promedio = round(sum(datos["dias"]) / len(datos["dias"]), 1) if datos["dias"] else 0
-        cumplimiento = round((datos["atendidos"] / datos["recibidos"]) * 100, 1) if datos["recibidos"] else 0
-
-        tabla_gerencias.append({
-            "gerencia": g,
-            "recibidos": datos["recibidos"],
-            "atendidos": datos["atendidos"],
-            "pendientes": datos["pendientes"],
-            "cumplimiento": cumplimiento,
-            "promedio_dias": promedio
-        })
-
-    # ============================
-    # 4. Datos para gráficas mensuales
-    # ============================
-    meses = ["Ene", "Feb", "Mar", "Abr", "May", "Jun",
-             "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
-
-    recibidos_mes = [0] * 12
-    atendidos_mes = [0] * 12
-    dias_promedio = [0] * 12
-
-    dias_por_mes = {i: [] for i in range(12)}
-
+    # Por mes
+    por_mes = {}
     for o in oficios:
         if o.fecha:
-            try:
-                mes = int(o.fecha.split("-")[1]) - 1
-            except:
-                continue
+            mes = o.fecha[:7]  # YYYY-MM
+            por_mes[mes] = por_mes.get(mes, 0) + 1
 
-            recibidos_mes[mes] += 1
-
-            if o.estatus == "Solucionado":
-                atendidos_mes[mes] += 1
-                if o.dias_atencion:
-                    dias_por_mes[mes].append(o.dias_atencion)
-
-    for i in range(12):
-        if dias_por_mes[i]:
-            dias_promedio[i] = round(sum(dias_por_mes[i]) / len(dias_por_mes[i]), 1)
-
-    # ============================
-    # 5. Enviar datos al dashboard
-    # ============================
     return render_template(
         "dashboard.html",
-        total_recibidos=total_recibidos,
-        total_atendidos=total_atendidos,
-        total_pendientes=total_pendientes,
-        porcentaje_cumplimiento=porcentaje_cumplimiento,
-        tabla_gerencias=tabla_gerencias,
-        meses=meses,
-        recibidos_mes=recibidos_mes,
-        atendidos_mes=atendidos_mes,
-        dias_promedio=dias_promedio
+        total=total,
+        atendidos=atendidos,
+        pendientes=pendientes,
+        por_gerencia=por_gerencia,
+        por_prioridad=por_prioridad,
+        por_mes=por_mes
     )
 
