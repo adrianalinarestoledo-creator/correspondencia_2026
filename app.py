@@ -402,6 +402,21 @@ def importar_excel():
 
 
 # --------------------------
+#   FUNCIÓN PARA LIMPIAR FECHAS
+# --------------------------
+
+def limpiar_fecha(valor):
+    if not valor or valor in ["nan", "None", ""]:
+        return None
+    valor = valor.strip()
+    # Si trae hora, cortar
+    if " " in valor:
+        valor = valor.split(" ")[0]
+    # Asegurar máximo 20 caracteres
+    return valor[:20]
+
+
+# --------------------------
 #   GUARDAR IMPORTACIÓN (RECIBE JSON)
 # --------------------------
 
@@ -430,11 +445,17 @@ def importar_excel_guardar():
         except:
             dias_val = None
 
+        # ⭐ LIMPIAR FECHAS
+        fecha = limpiar_fecha(fila.get("FECHA INGRESO"))
+        fecha_limite = limpiar_fecha(fila.get("FECHA LÍMITE DE ATENCIÓN"))
+        fecha_atencion = limpiar_fecha(fila.get("FECHA ATENCIÓN"))
+        fecha_acuse = limpiar_fecha(fila.get("FECHA ACUSE DE RESPUESTA"))
+
         # ⭐ CREAR EL REGISTRO
         nuevo = Oficio(
             numero=fila.get("FOLIO"),
             numero_oficio=fila.get("NUMERO DE OFICIO"),
-            fecha=fila.get("FECHA INGRESO"),
+            fecha=fecha,
             hora=fila.get("HORA"),
             numero_expediente=fila.get("No. EXP."),
             quien_emite=fila.get("QUIEN LO EMITE"),
@@ -444,15 +465,15 @@ def importar_excel_guardar():
             asunto=fila.get("ASUNTO"),
             prioridad=fila.get("PRIORIDAD"),
             termino=termino_val,
-            fecha_limite=fila.get("FECHA LÍMITE DE ATENCIÓN"),
+            fecha_limite=fecha_limite,
             responsable1=fila.get("RESPONSABLE 1"),
             responsable2=fila.get("RESPONSABLE"),
             nis=fila.get("NIS"),
             estatus=fila.get("ESTATUS"),
             observaciones=fila.get("OBSERVACIONES"),
-            fecha_atencion=fila.get("FECHA ATENCIÓN"),
+            fecha_atencion=fecha_atencion,
             oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
-            fecha_acuse=fila.get("FECHA ACUSE DE RESPUESTA"),
+            fecha_acuse=fecha_acuse,
             dias_atencion=dias_val
         )
 
@@ -461,6 +482,7 @@ def importar_excel_guardar():
     db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
+
 
 # --------------------------
 #   DASHBOARD
