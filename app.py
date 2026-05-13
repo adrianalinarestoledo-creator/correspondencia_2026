@@ -120,15 +120,15 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-      if user and user.password_hash and check_password_hash(user.password_hash, password):
-    session["usuario"] = user.usuario
-    session["rol"] = user.rol
-    session["gerencia"] = user.gerencia
+        if user and user.password_hash and check_password_hash(user.password_hash, password):
+            session["usuario"] = user.usuario
+            session["rol"] = user.rol
+            session["gerencia"] = user.gerencia
 
-    # ⭐ Guardar año actual para el menú
-    session["anio"] = datetime.now().year
+            # ⭐ Guardar año actual para el menú
+            session["anio"] = datetime.now().year
 
-    return redirect(url_for("lista"))
+            return redirect(url_for("lista"))
 
         return render_template("login.html", error="Usuario o contraseña incorrectos")
 
