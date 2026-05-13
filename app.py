@@ -408,25 +408,28 @@ def importar_excel_guardar():
 
     for fila in datos:
         nuevo = Oficio(
-            numero=fila.get("Folio SOAPAP"),
-            numero_oficio=fila.get("Número de oficio externo"),
-            fecha=fila.get("Fecha"),
-            hora=fila.get("Hora"),
-            numero_expediente=fila.get("Número expediente"),
-            quien_emite=fila.get("Quien emite"),
-            gerencia_turnada=fila.get("Gerencia"),
-            asunto=fila.get("Asunto"),
-            prioridad=fila.get("Prioridad"),
-            fecha_limite=fila.get("Fecha límite"),
-            responsable1=fila.get("Responsable Director"),
-            responsable2=fila.get("Responsable Gerente"),
+            numero=fila.get("FOLIO"),  # ⭐ EL FOLIO VIENE DEL EXCEL
+            numero_oficio=fila.get("NUMERO DE OFICIO"),
+            fecha=fila.get("FECHA INGRESO"),
+            hora=fila.get("HORA"),
+            numero_expediente=fila.get("No. EXP."),
+            quien_emite=fila.get("QUIEN LO EMITE"),
+            con_copia_para=fila.get("CON COPIA PARA"),
+            anexos=fila.get("ANEXOS"),
+            gerencia_turnada=fila.get("GERENCIA"),
+            asunto=fila.get("ASUNTO"),
+            prioridad=fila.get("PRIORIDAD"),
+            termino=fila.get("TÉRMINO"),
+            fecha_limite=fila.get("FECHA LÍMITE DE ATENCIÓN"),
+            responsable1=fila.get("RESPONSABLE 1"),
+            responsable2=fila.get("RESPONSABLE"),
             nis=fila.get("NIS"),
-            estatus=fila.get("Estatus"),
-            fecha_atencion=fila.get("Fecha atención"),
-            dias_atencion=fila.get("Días atención"),
-            oficio_respuesta=fila.get("Oficio respuesta"),
-            fecha_acuse=fila.get("Fecha acuse"),
-            observaciones=fila.get("Observaciones")
+            estatus=fila.get("ESTATUS"),
+            observaciones=fila.get("OBSERVACIONES"),
+            fecha_atencion=fila.get("FECHA ATENCIÓN"),
+            oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
+            fecha_acuse=fila.get("FECHA ACUSE DE RESPUESTA"),
+            dias_atencion=fila.get("DÍAS DE ATENCIÓN")
         )
 
         db.session.add(nuevo)
@@ -434,7 +437,6 @@ def importar_excel_guardar():
     db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
-
 
 # --------------------------
 #   DASHBOARD
