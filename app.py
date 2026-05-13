@@ -362,7 +362,7 @@ def responder(id):
     oficio = Oficio.query.get_or_404(id)
 
     # ⭐ BLOQUEAR SI YA ESTÁ SOLUCIONADO Y NO ES ADMIN
-    if oficio.estatus == "Solucionado" and session.get("rol") != "admin":
+    if oficio.estatus and oficio.estatus.strip().lower() == "solucionado" and session.get("rol") != "admin":
         return render_template("bloqueado.html", oficio=oficio)
 
     if request.method == "POST":
