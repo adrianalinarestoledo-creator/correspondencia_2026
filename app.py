@@ -11,6 +11,11 @@ import os
 import uuid
 from openpyxl import load_workbook
 
+wb = load_workbook(archivo, read_only=True)
+ws = wb.active
+
+rows = list(ws.iter_rows(values_only=True))
+
 app = Flask(__name__)
 
 # 🔐 Clave segura para sesiones
