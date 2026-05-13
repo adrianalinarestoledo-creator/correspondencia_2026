@@ -615,10 +615,13 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
+
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
 from openpyxl import load_workbook
+from datetime import datetime
+from sqlalchemy import text
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -628,97 +631,82 @@ def confirmar_importacion():
         flash("No se encontró archivo para importar", "danger")
         return redirect(url_for("importar_excel"))
 
+    # ⭐ BORRAR TABLA COMPLETA (solo en desarrollo)
     db.session.execute(text("TRUNCATE oficio RESTART IDENTITY CASCADE;"))
     db.session.commit()
 
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    # ⭐ Encabezados EXACTOS en fila 2
-    raw_headers = [cell.value for cell in next(ws.iter_rows(min_row=2, max_row=2))]
-    headers = [str(h).strip() if h else "" for h in raw_headers]
+    # ⭐ Procesar desde la fila 3 (fila 1 título, fila 2 encabezados)
+    for row in ws.iter_rows(min_row=3, values_only=True):
 
-    # ⭐ Cortar encabezados hasta Z (ignorar columnas después)
-    headers = headers[:26]   # A–Z
-
-    # ⭐ Columnas que SÍ quieres importar
-    columnas_requeridas = [
-        "Folio",
-        "FECHA INGRESO",
-        "Hora",
-        "NUMERO DE OFICIO",
-        "FECHA DE EMISIÓN",
-        "QUIEN LO EMITE",
-        "No. EXP.",
-        "CON COPIA PARA",
-        "ASUNTO",
-        "ANEXOS",
-        "GERENCIA",
-        "PRIORIDAD",
-        "RESPONSABLE 1",
-        "RESPONSABLE",
-        "NIS",
-        "ESTATUS",
-        "SEMAFORO",
-        "OBSERVACIONES",
-        "TÉRMINO",
-        "FECHA LÍMITE DE ATENCIÓN",
-        "FECHA ATENCIÓN",
-        "OFICIO DE RESPUESTA",
-        "FECHA ACUSE DE RESPUESTA",
-        "DÍAS DE ATENCIÓN"
-    ]
-
-    # ⭐ Crear índice EXACTO
-    idx = {}
-    for col in columnas_requeridas:
-        if col in headers:
-            idx[col] = headers.index(col)
-
-    # ⭐ Validar columnas faltantes
-    faltantes = [c for c in columnas_requeridas if c not in idx]
-    if faltantes:
-        print("HEADERS DETECTADOS:", headers)
-        print("FALTANTES:", faltantes)
-        flash(f"Faltan columnas en el Excel: {', '.join(faltantes)}", "danger")
-        return redirect(url_for("importar_excel"))
-
-    # ⭐ Procesar datos desde fila 3
-    for row in ws.iter_rows(min_row=3):
-
-        # ⭐ Cortar la fila EXACTAMENTE hasta Z
+        # ⭐ Cortar SOLO columnas A–Z (0–25)
         row = row[:26]
 
-        folio = row[idx["Folio"]].value
-        if not folio:
-            continue
+        # ⭐ Mapeo exacto según tus columnas
+        folio = row[0]                  # A
+        fecha_ingreso = row[1]          # B
+        hora = row[3]                   # D
+        numero_oficio = row[4]          # E
+        fecha_emision = row[5]          # F
+        quien_emite = row[6]            # G
+        no_exp = row[7]                 # H
+        con_copia = row[8]              # I
+        asunto = row[9]                 # J
+        anexos = row[10]                # K
+        gerencia = row[11]              # L
+        prioridad = row[12]             # M
+        responsable1 = row[13]          # N
+        responsable2 = row[14]          # O
+        nis = row[15]                   # P
 
+        estatus = row[17]               # R
+        semaforo = row[18]              # S
+        observaciones = row[19]         # T
+        termino = row[20]               # U
+        fecha_limite = row[21]          # V
+        fecha_atencion = row[22]        # W
+        oficio_respuesta = row[23]      # X
+        fecha_acuse = row[24]           # Y
+        dias_atencion = row[25]         # Z
+
+        # ⭐ Crear objeto Oficio
         oficio = Oficio(
-            numero = folio,
-            fecha = row[idx["FECHA INGRESO"]].value,
-            hora = row[idx["Hora"]].value,
-            numero_oficio = row[idx["NUMERO DE OFICIO"]].value,
-            fecha_emision = row[idx["FECHA DE EMISIÓN"]].value,
-            quien_emite = row[idx["QUIEN LO EMITE"]].value,
-            numero_expediente = row[idx["No. EXP."]].value,
-            con_copia_para = row[idx["CON COPIA PARA"]].value,
-            asunto = row[idx["ASUNTO"]].value,
-            anexos = row[idx["ANEXOS"]].value,
-            gerencia_turnada = row[idx["GERENCIA"]].value,
-            prioridad = row[idx["PRIORIDAD"]].value,
-            responsable1 = row[idx["RESPONSABLE 1"]].value,
-            responsable2 = row[idx["RESPONSABLE"]].value,
-            nis = row[idx["NIS"]].value,
-            estatus = row[idx["ESTATUS"]].value,
-            semaforo = row[idx["SEMAFORO"]].value,
-            observaciones = row[idx["OBSERVACIONES"]].value,
-            termino = row[idx["TÉRMINO"]].value,
-            fecha_limite = row[idx["FECHA LÍMITE DE ATENCIÓN"]].value,
-            fecha_atencion = row[idx["FECHA ATENCIÓN"]].value,
-            oficio_respuesta = row[idx["OFICIO DE RESPUESTA"]].value,
-            fecha_acuse = row[idx["FECHA ACUSE DE RESPUESTA"]].value,
-            dias_atencion = row[idx["DÍAS DE ATENCIÓN"]].value
+            folio=folio,
+            fecha_ingreso=fecha_ingreso,
+            hora=hora,
+            numero_oficio=numero_oficio,
+            fecha_emision=fecha_emision,
+            quien_emite=quien_emite,
+            no_exp=no_exp,
+            con_copia_para=con_copia,
+            asunto=asunto,
+            anexos=anexos,
+            gerencia=gerencia,
+            prioridad=prioridad,
+            responsable1=responsable1,
+            responsable2=responsable2,
+            nis=nis,
+            estatus=estatus,
+            semaforo=semaforo,
+            observaciones=observaciones,
+            termino=termino,
+            fecha_limite_atencion=fecha_limite,
+            fecha_atencion=fecha_atencion,
+            oficio_respuesta=oficio_respuesta,
+            fecha_acuse_respuesta=fecha_acuse,
+            dias_atencion=dias_atencion
         )
+
+        # ⭐ Cálculo automático de días de atención si faltan
+        if fecha_ingreso and fecha_atencion and not dias_atencion:
+            try:
+                f1 = fecha_ingreso if isinstance(fecha_ingreso, datetime) else datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
+                f2 = fecha_atencion if isinstance(fecha_atencion, datetime) else datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
+                oficio.dias_atencion = (f2 - f1).days
+            except:
+                oficio.dias_atencion = None
 
         db.session.add(oficio)
 
@@ -726,7 +714,7 @@ def confirmar_importacion():
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-  
+
 # --------------------------
 #   FUNCIÓN PARA GENERAR FOLIO
 # --------------------------
