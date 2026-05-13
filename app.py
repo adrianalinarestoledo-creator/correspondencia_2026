@@ -676,6 +676,18 @@ def confirmar_importacion():
         oficio_respuesta = row[23]
         fecha_acuse = row[24]
         dias_atencion = row[25]
+# Normalizar días de atención
+if dias_atencion in ("", None, " ", "  "):
+    dias_atencion = None
+else:
+    try:
+        dias_atencion = int(dias_atencion)
+    except:
+        dias_atencion = None
+
+# Normalizar fecha límite
+if fecha_limite in ("", None):
+    fecha_limite = None
 
         # -----------------------------
         # ¿EXISTE YA ESTE FOLIO?
