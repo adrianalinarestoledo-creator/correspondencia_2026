@@ -1,9 +1,11 @@
 <nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm border-bottom">
     <div class="container-fluid">
 
+        {% set anio_actual = session.get('anio', 2026) %}
+
         <!-- ⭐ Marca con año dinámico -->
         <a class="navbar-brand fw-bold text-primary" href="{{ url_for('lista') }}">
-            📁 Correspondencia {{ session.get('anio') }}
+            📁 Correspondencia {{ anio_actual }}
         </a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuNav">
@@ -25,7 +27,7 @@
                         Años
                     </a>
                     <ul class="dropdown-menu">
-                        {% for y in range(2026, session.get('anio') + 1) %}
+                        {% for y in range(2026, anio_actual + 1) %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('lista', anio=y) }}">
                                     Correspondencia {{ y }}
