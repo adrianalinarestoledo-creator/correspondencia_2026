@@ -379,7 +379,9 @@ def importar_excel():
         archivo = request.files["archivo"]
         df = pd.read_excel(archivo)
 
-        # Convertir a vista previa
+        # ⭐ Convertir TODO a texto para evitar errores JSON
+        df = df.astype(str)
+
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
 
@@ -390,7 +392,6 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-
 
 # --------------------------
 #   GUARDAR IMPORTACIÓN (RECIBE JSON)
