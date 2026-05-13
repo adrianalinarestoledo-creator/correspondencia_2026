@@ -439,8 +439,7 @@ def limpiar_fecha(valor):
         valor = valor.split(" ")[0]
     # Asegurar máximo 20 caracteres
     return valor[:20]
-
-
+    
 # --------------------------
 #   GUARDAR IMPORTACIÓN (RECIBE JSON)
 # --------------------------
@@ -452,19 +451,21 @@ def importar_excel_guardar():
     if not datos:
         return jsonify({"error": "No se recibieron datos"}), 400
 
+    # ⭐ REEMPLAZAR TODO: BORRAR TABLA COMPLETA ANTES DE IMPORTAR
+    db.session.query(Oficio).delete()
+    db.session.commit()
+
     for fila in datos:
 
         # ⭐ LIMPIAR Y CONVERTIR CAMPOS NUMÉRICOS
         termino_val = fila.get("TÉRMINO")
         dias_val = fila.get("DÍAS DE ATENCIÓN")
 
-        # Convertir TÉRMINO a entero
         try:
             termino_val = int(float(termino_val)) if termino_val not in ["", "None", "nan"] else None
         except:
             termino_val = None
 
-        # Convertir DÍAS DE ATENCIÓN a entero
         try:
             dias_val = int(float(dias_val)) if dias_val not in ["", "None", "nan"] else None
         except:
@@ -475,6 +476,19 @@ def importar_excel_guardar():
         fecha_limite = limpiar_fecha(fila.get("FECHA LÍMITE DE ATENCIÓN"))
         fecha_atencion = limpiar_fecha(fila.get("FECHA ATENCIÓN"))
         fecha_acuse = limpiar_fecha(fila.get("FECHA ACUSE DE RESPUESTA"))
+
+        # ⭐ DETECTAR SEMÁFORO (aunque venga con espacios o mayúsculas)
+        semaforo = None
+        for key in fila.keys():
+            if key.strip().lower() == "semaforo":
+                semaforo = fila[key]
+                break
+
+        # ⭐ CONVERTIR FINALIZADO → SOLUCIONADO
+        if semaforo and str(semaforo).strip().lower() == "finalizado":
+            estatus_val = "Solucionado"
+        else:
+            estatus_val = fila.get("ESTATUS")
 
         # ⭐ CREAR EL REGISTRO
         nuevo = Oficio(
@@ -494,7 +508,7 @@ def importar_excel_guardar():
             responsable1=fila.get("RESPONSABLE 1"),
             responsable2=fila.get("RESPONSABLE"),
             nis=fila.get("NIS"),
-            estatus=fila.get("ESTATUS"),
+            estatus=estatus_val,
             observaciones=fila.get("OBSERVACIONES"),
             fecha_atencion=fecha_atencion,
             oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
@@ -507,7 +521,6 @@ def importar_excel_guardar():
     db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
-
 
 # --------------------------
 #   DASHBOARD
