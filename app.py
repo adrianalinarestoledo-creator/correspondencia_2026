@@ -618,13 +618,11 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
 from openpyxl import load_workbook
 from datetime import datetime
-from sqlalchemy import text
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -637,7 +635,7 @@ def confirmar_importacion():
     wb = load_workbook(filename=file_path, read_only=True, data_only=True)
     ws = wb.active
 
-    # Procesar desde la fila 3 (fila 1 título, fila 2 encabezados)
+    # Procesar desde la fila 3
     for row in ws.iter_rows(min_row=3, values_only=True):
 
         row = row[:26]  # columnas A–Z
@@ -668,7 +666,6 @@ def confirmar_importacion():
         responsable2 = row[14]
         nis = row[15]
         estatus = row[17]
-        semaforo = row[18]
         observaciones = row[19]
         termino = row[20]
         fecha_limite = row[21]
@@ -676,18 +673,23 @@ def confirmar_importacion():
         oficio_respuesta = row[23]
         fecha_acuse = row[24]
         dias_atencion = row[25]
-# Normalizar días de atención
-if dias_atencion in ("", None, " ", "  "):
-    dias_atencion = None
-else:
-    try:
-        dias_atencion = int(dias_atencion)
-    except:
-        dias_atencion = None
 
-# Normalizar fecha límite
-if fecha_limite in ("", None):
-    fecha_limite = None
+        # -----------------------------
+        # NORMALIZACIÓN DE DATOS
+        # -----------------------------
+
+        # Normalizar días de atención
+        if dias_atencion in ("", None, " ", "  "):
+            dias_atencion = None
+        else:
+            try:
+                dias_atencion = int(dias_atencion)
+            except:
+                dias_atencion = None
+
+        # Normalizar fecha límite
+        if fecha_limite in ("", None):
+            fecha_limite = None
 
         # -----------------------------
         # ¿EXISTE YA ESTE FOLIO?
@@ -716,9 +718,10 @@ if fecha_limite in ("", None):
             existe.fecha_atencion = fecha_atencion
             existe.oficio_respuesta = oficio_respuesta
             existe.fecha_acuse = fecha_acuse
+            existe.dias_atencion = dias_atencion
 
             # Cálculo automático
-            if fecha_ingreso and fecha_atencion and not dias_atencion:
+            if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
                     f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
@@ -754,7 +757,7 @@ if fecha_limite in ("", None):
             )
 
             # Cálculo automático
-            if fecha_ingreso and fecha_atencion and not dias_atencion:
+            if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
                     f2 = datetime.strptime(str(fecha_atencion), "%Y-%m-%d")
@@ -768,25 +771,7 @@ if fecha_limite in ("", None):
 
     flash("Importación completada correctamente", "success")
     return redirect(url_for("lista"))
-
-# --------------------------
-#   FUNCIÓN PARA GENERAR FOLIO
-# --------------------------
-
-def generar_folio():
-    ultimo = Oficio.query.order_by(Oficio.id.desc()).first()
-
-    if not ultimo or not ultimo.numero:
-        return "SOAPAP-2026-0001"
-
-    try:
-        consecutivo = int(ultimo.numero.split("-")[2])
-    except:
-        consecutivo = 0
-
-    nuevo = consecutivo + 1
-    return f"SOAPAP-2026-{nuevo:04d}"
-    
+   
 # --------------------------
 #   INICIO
 # --------------------------
