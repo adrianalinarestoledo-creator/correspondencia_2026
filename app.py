@@ -384,7 +384,7 @@ def importar_excel():
 
         df = df.astype(str)
 
-        df = df.iloc[:2698]
+        df = df.iloc[:2696]
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
