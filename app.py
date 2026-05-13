@@ -618,11 +618,13 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
+    
 # --------------------------
 #   CONFIRMAR IMPORTACIÓN
 # --------------------------
 from openpyxl import load_workbook
 from datetime import datetime
+import re
 
 @app.route("/confirmar_importacion", methods=["POST"])
 def confirmar_importacion():
@@ -678,7 +680,17 @@ def confirmar_importacion():
         # NORMALIZACIÓN DE DATOS
         # -----------------------------
 
-        # Normalizar días de atención
+        # ⭐ Normalizar término (columna U)
+        if termino in ("", None, " ", "  "):
+            termino = None
+        else:
+            try:
+                numeros = re.findall(r"\d+", str(termino))
+                termino = int(numeros[0]) if numeros else None
+            except:
+                termino = None
+
+        # ⭐ Normalizar días de atención
         if dias_atencion in ("", None, " ", "  "):
             dias_atencion = None
         else:
@@ -687,7 +699,7 @@ def confirmar_importacion():
             except:
                 dias_atencion = None
 
-        # Normalizar fecha límite
+        # ⭐ Normalizar fecha límite
         if fecha_limite in ("", None):
             fecha_limite = None
 
@@ -720,7 +732,7 @@ def confirmar_importacion():
             existe.fecha_acuse = fecha_acuse
             existe.dias_atencion = dias_atencion
 
-            # Cálculo automático
+            # ⭐ Cálculo automático si no viene en Excel
             if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
@@ -756,7 +768,7 @@ def confirmar_importacion():
                 dias_atencion=dias_atencion
             )
 
-            # Cálculo automático
+            # ⭐ Cálculo automático si no viene en Excel
             if fecha_ingreso and fecha_atencion and dias_atencion is None:
                 try:
                     f1 = datetime.strptime(str(fecha_ingreso), "%Y-%m-%d")
