@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_file, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, or_
 from datetime import datetime, timedelta
@@ -102,54 +102,11 @@ class Oficio(db.Model):
     dias_atencion = db.Column(db.Integer)
 
 # --------------------------
-#   VALIDACIÓN DE PASSWORD
-# --------------------------
-
-def password_segura(pwd):
-    reglas = [
-        r".{8,}",
-        r"[A-Z]",
-        r"[a-z]",
-        r"[0-9]",
-        r"[^A-Za-z0-9]"
-    ]
-    return all(re.search(r, pwd) for r in reglas)
-
-# --------------------------
 #   INICIALIZAR BD
 # --------------------------
 
 with app.app_context():
     db.create_all()
-# --------------------------
-#   MODELO DE OFICIOS
-# --------------------------
-
-class Oficio(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    numero = db.Column(db.String(50))  # Folio SOAPAP
-    numero_oficio = db.Column(db.String(100))  # Número de oficio externo
-    fecha = db.Column(db.String(20))
-    hora = db.Column(db.String(20))
-    numero_expediente = db.Column(db.String(100))
-    quien_emite = db.Column(db.String(200))
-    con_copia_para = db.Column(db.String(200))
-    anexos = db.Column(db.String(200))
-    gerencia_turnada = db.Column(db.String(50))
-    asunto = db.Column(db.String(500))
-    prioridad = db.Column(db.String(20))
-    termino = db.Column(db.Integer)
-    fecha_limite = db.Column(db.String(20))
-    responsable1 = db.Column(db.String(200))
-    responsable2 = db.Column(db.String(200))
-    nis = db.Column(db.String(50))
-    estatus = db.Column(db.String(50), default="Pendiente")
-    fecha_atencion = db.Column(db.String(20))
-    dias_atencion = db.Column(db.Integer)
-    oficio_respuesta = db.Column(db.String(200))
-    fecha_acuse = db.Column(db.String(20))
-    observaciones = db.Column(db.String(500))
-
 
 # --------------------------
 #   LOGIN
@@ -163,16 +120,15 @@ def login():
 
         user = Usuario.query.filter_by(usuario=usuario).first()
 
-        if user and user.password == password:
+        if user and user.password_hash and check_password_hash(user.password_hash, password):
             session["usuario"] = user.usuario
             session["rol"] = user.rol
-            session["gerencia"] = user.usuario
+            session["gerencia"] = user.gerencia
             return redirect(url_for("lista"))
 
         return render_template("login.html", error="Usuario o contraseña incorrectos")
 
     return render_template("login.html")
-
 
 # --------------------------
 #   LOGOUT
@@ -182,7 +138,6 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("login"))
-
 
 # --------------------------
 #   REGISTRO DE OFICIOS (ADMIN)
@@ -194,7 +149,7 @@ def nuevo():
         return "Solo el admin puede registrar oficios"
 
     if request.method == "GET":
-        folio_generado = generar_folio()
+        folio_generado = f"OF-{uuid.uuid4().hex[:6].upper()}"
         return render_template("nuevo.html", folio_generado=folio_generado)
 
     if request.method == "POST":
@@ -244,7 +199,8 @@ def nuevo():
             fecha_limite=fecha_limite_str,
             responsable1=responsable1,
             responsable2=responsable2,
-            nis=nis
+            nis=nis,
+            estatus="Pendiente"
         )
 
         db.session.add(nuevo)
@@ -253,7 +209,6 @@ def nuevo():
         return redirect(url_for("lista"))
 
     return render_template("nuevo.html")
-
 
 # --------------------------
 #   LISTA DE OFICIOS
@@ -288,7 +243,6 @@ def lista():
     oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
 
     return render_template("lista.html", oficios=oficios)
-
 
 # --------------------------
 #   EXPORTAR A EXCEL
@@ -341,7 +295,6 @@ def exportar_excel():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 
-
 # --------------------------
 #   EXPORTAR A PDF
 # --------------------------
@@ -366,7 +319,6 @@ def exportar_pdf():
         mimetype="application/pdf"
     )
 
-
 # --------------------------
 #   VER OFICIO
 # --------------------------
@@ -375,7 +327,6 @@ def exportar_pdf():
 def ver(id):
     oficio = Oficio.query.get_or_404(id)
     return render_template("ver.html", oficio=oficio)
-
 
 # --------------------------
 #   ATENDER OFICIO
@@ -396,7 +347,6 @@ def atender(id):
 
     return redirect(url_for("lista"))
 
-
 # --------------------------
 #   RESPONDER OFICIO
 # --------------------------
@@ -415,7 +365,6 @@ def responder(id):
 
     return render_template("responder.html", oficio=oficio)
 
-
 # --------------------------
 #   IMPORTAR EXCEL
 # --------------------------
@@ -431,7 +380,6 @@ def importar_excel():
         return render_template("importar_excel_preview.html", datos=datos)
 
     return render_template("importar_excel.html")
-
 
 # --------------------------
 #   GUARDAR IMPORTACIÓN
@@ -470,13 +418,6 @@ def importar_excel_guardar():
 
     return jsonify({"mensaje": "Importación completada"})
 
-
-# --------------------------
-#   INICIO DEL SERVIDOR
-# --------------------------
-
-if __name__ == "__main__":
-    app.run(debug=True)
 # --------------------------
 #   DASHBOARD
 # --------------------------
@@ -486,7 +427,6 @@ def dashboard():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
-    # Si es admin ve todo, si no solo su gerencia
     if session.get("rol") == "admin":
         oficios = Oficio.query.all()
     else:
@@ -496,23 +436,20 @@ def dashboard():
     atendidos = len([o for o in oficios if o.estatus == "Atendido"])
     pendientes = len([o for o in oficios if o.estatus != "Atendido"])
 
-    # Por gerencia
     por_gerencia = {}
     for o in oficios:
         g = o.gerencia_turnada
         por_gerencia[g] = por_gerencia.get(g, 0) + 1
 
-    # Por prioridad
     por_prioridad = {}
     for o in oficios:
         p = o.prioridad
         por_prioridad[p] = por_prioridad.get(p, 0) + 1
 
-    # Por mes
     por_mes = {}
     for o in oficios:
         if o.fecha:
-            mes = o.fecha[:7]  # YYYY-MM
+            mes = o.fecha[:7]
             por_mes[mes] = por_mes.get(mes, 0) + 1
 
     return render_template(
@@ -524,4 +461,11 @@ def dashboard():
         por_prioridad=por_prioridad,
         por_mes=por_mes
     )
+
+# --------------------------
+#   INICIO DEL SERVIDOR
+# --------------------------
+
+if __name__ == "__main__":
+    app.run(debug=True)
 
