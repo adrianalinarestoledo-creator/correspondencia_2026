@@ -378,11 +378,13 @@ def importar_excel():
     if request.method == "POST":
         archivo = request.files["archivo"]
 
-        df = pd.read_excel(archivo, header=1)  # Fila 2 = encabezados
+        df = pd.read_excel(archivo, header=1)
 
-        df = df.astype(str)  # evitar errores JSON
+        df.columns = df.columns.str.strip()  # ⭐ LIMPIAR ENCABEZADOS
 
-        df = df.iloc[:2698]  # ⭐ cortar hasta la fila 2698
+        df = df.astype(str)
+
+        df = df.iloc[:2698]
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
