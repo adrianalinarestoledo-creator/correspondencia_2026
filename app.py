@@ -679,29 +679,29 @@ def confirmar_importacion():
         # -----------------------------
         # NORMALIZACIÓN DE DATOS
         # -----------------------------
+# ⭐ Normalizar término (columna U)
+if termino in ("", None, " ", "  "):
+    termino = None
+else:
+    try:
+        numeros = re.findall(r"\d+", str(termino))
+        termino = int(numeros[0]) if numeros else None
+    except:
+        termino = None
 
-        # ⭐ Normalizar término (columna U)
-        if termino in ("", None, " ", "  "):
-            termino = None
-        else:
-            try:
-                numeros = re.findall(r"\d+", str(termino))
-                termino = int(numeros[0]) if numeros else None
-            except:
-                termino = None
+# ⭐ Normalizar días de atención
+if dias_atencion in ("", None, " ", "  "):
+    dias_atencion = None
+else:
+    try:
+        dias_atencion = int(dias_atencion)
+    except:
+        dias_atencion = None
 
-        # ⭐ Normalizar días de atención
-        if dias_atencion in ("", None, " ", "  "):
-            dias_atencion = None
-        else:
-            try:
-                dias_atencion = int(dias_atencion)
-            except:
-                dias_atencion = None
+# ⭐ Normalizar fecha límite
+if fecha_limite in ("", None):
+    fecha_limite = None
 
-        # ⭐ Normalizar fecha límite
-        if fecha_limite in ("", None):
-            fecha_limite = None
 
         # -----------------------------
         # ¿EXISTE YA ESTE FOLIO?
