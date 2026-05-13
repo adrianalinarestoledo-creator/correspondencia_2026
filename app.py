@@ -193,31 +193,16 @@ def logout():
     return redirect(url_for("login"))
 
 # --------------------------
-#  GENERAR OFICIO
+#   GENERAR FOLIO (C2)
 # --------------------------
+contador_folio = 1  # contador en memoria
+
 def generar_folio():
-    prefijo = "SOAPAP-2026-"
+    global contador_folio
+    folio = f"SOAPAP-2026-{contador_folio:04d}"
+    contador_folio += 1
+    return folio
 
-    # Buscar el folio más alto que siga el formato correcto
-    ultimo = (
-        Oficio.query
-        .filter(Oficio.numero.like(f"{prefijo}%"))
-        .order_by(Oficio.numero.desc())
-        .first()
-    )
-
-    # Si no hay ningún folio aún
-    if not ultimo or not ultimo.numero:
-        return f"{prefijo}0001"
-
-    try:
-        # Extraer la parte numérica final
-        consecutivo = int(ultimo.numero.replace(prefijo, ""))
-    except:
-        consecutivo = 0
-
-    nuevo = consecutivo + 1
-    return f"{prefijo}{nuevo:04d}"
 
 # --------------------------
 #   PROTEGER RUTAS
