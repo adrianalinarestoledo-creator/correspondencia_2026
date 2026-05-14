@@ -28,16 +28,16 @@
                     </a>
                     <ul class="dropdown-menu">
                         {% for y in range(2026, anio_actual + 1) %}
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('lista', anio=y) }}">
-                                    Correspondencia {{ y }}
-                                </a>
-                            </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('lista', anio=y) }}">
+                                Correspondencia {{ y }}
+                            </a>
+                        </li>
                         {% endfor %}
                     </ul>
                 </li>
 
-                <!-- ⭐ Nuevo Oficio (solo admin y superadmin) -->
+                <!-- ⭐ Nuevo Oficio (admin y superadmin) -->
                 {% if session.get('rol') in ['admin', 'superadmin'] %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('nuevo') }}">➕ Nuevo Oficio</a>
