@@ -386,7 +386,7 @@ def exportar_excel():
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
 # --------------------------
-#   EXPORTAR A PDF (FINAL)
+#   EXPORTAR A PDF (CON FILTROS)
 # --------------------------
 
 @app.route("/exportar_pdf")
@@ -394,13 +394,48 @@ def exportar_pdf():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
-    # ⭐ Admin ve todo — gerencias ven solo lo suyo
-    if session.get("rol") == "admin":
-        oficios = Oficio.query.order_by(Oficio.id.desc()).all()
-    else:
-        oficios = Oficio.query.filter_by(
-            gerencia_turnada=session["gerencia"]
-        ).order_by(Oficio.id.desc()).all()
+    # ⭐ Obtener filtros igual que en /lista
+    q = request.args.get("q", "").strip()
+    gerencia_filtro = request.args.get("gerencia", "")
+    estatus_filtro = request.args.get("estatus", "")
+    fecha_ini = request.args.get("fecha_ini", "")
+    fecha_fin = request.args.get("fecha_fin", "")
+
+    consulta = Oficio.query
+
+    # ⭐ Si NO es admin → solo ve su gerencia
+    if session.get("rol") not in ["admin", "superadmin"]:
+        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
+
+    # ⭐ Filtro de búsqueda
+    if q:
+        consulta = consulta.filter(
+            (Oficio.asunto.ilike(f"%{q}%")) |
+            (Oficio.numero.ilike(f"%{q}%")) |
+            (Oficio.numero_oficio.ilike(f"%{q}%"))
+        )
+
+    # ⭐ Filtro por gerencia (solo admin)
+    if gerencia_filtro and session.get("rol") in ["admin", "superadmin"]:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+
+    # ⭐ Filtro por estatus
+    if estatus_filtro:
+        consulta = consulta.filter_by(estatus=estatus_filtro)
+
+    # ⭐ Filtro por fecha inicial
+    if fecha_ini:
+        consulta = consulta.filter(Oficio.fecha >= fecha_ini)
+
+    # ⭐ Filtro por fecha final
+    if fecha_fin:
+        consulta = consulta.filter(Oficio.fecha <= fecha_fin)
+
+    # ⭐ Ordenar
+    consulta = consulta.order_by(Oficio.id.desc())
+
+    # ⭐ Obtener resultados filtrados
+    oficios = consulta.all()
 
     # ⭐ Preparar datos para la plantilla PDF
     data = []
@@ -427,10 +462,10 @@ def exportar_pdf():
             "Observaciones": o.observaciones
         })
 
-    # ⭐ Renderizar HTML con la plantilla
+    # ⭐ Renderizar HTML
     rendered = render_template("oficios_pdf.html", oficios=data)
 
-    # ⭐ Opciones profesionales para PDF
+    # ⭐ Opciones PDF
     options = {
         "page-size": "Letter",
         "orientation": "Portrait",
@@ -442,14 +477,12 @@ def exportar_pdf():
         "enable-local-file-access": None
     }
 
-    # ⭐ Convertir HTML a PDF con opciones
     pdf = pdfkit.from_string(rendered, False, options=options)
 
-    # ⭐ Enviar PDF
     return send_file(
         BytesIO(pdf),
         as_attachment=True,
-        download_name="oficios.pdf",
+        download_name="oficios_filtrados.pdf",
         mimetype="application/pdf"
     )
 
