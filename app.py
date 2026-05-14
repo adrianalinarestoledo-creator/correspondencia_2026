@@ -467,41 +467,79 @@ def responder(id):
 # --------------------------
 #   IMPORTAR EXCEL (SUBIR Y VISTA PREVIA) - CORREGIDA
 # --------------------------
+@app.route("/importar_excel_guardar", methods=["POST"])
+def importar_excel_guardar():
+    datos = request.json
 
-@app.route("/importar_excel", methods=["GET", "POST"])
-def importar_excel():
-    if request.method == "POST":
-        archivo = request.files["archivo"]
+    if not datos:
+        return jsonify({"error": "No se recibieron datos"}), 400
 
-        # ✅ Encabezados reales están en la primera fila → header=0
-        df = pd.read_excel(archivo, header=0)
+    # Borrar tabla antes de importar
+    db.session.query(Oficio).delete()
+    db.session.commit()
 
-        # ✅ Limpiar espacios en los nombres de columnas
-        df.columns = df.columns.str.strip()
+    for fila in datos:
 
-        # ✅ Eliminar filas totalmente vacías
-        df = df.dropna(how="all")
+        # Convertir números
+        termino_val = fila.get("TÉRMINO")
+        dias_val = fila.get("DÍAS DE ATENCIÓN")
 
-        # ✅ Convertir todo a string para evitar problemas al serializar a JSON
-        df = df.astype(str)
+        try:
+            termino_val = int(float(termino_val)) if termino_val not in ["", "None", "nan"] else None
+        except:
+            termino_val = None
 
-        # ✅ Eliminar filas sin Folio SOAPAP (evita basura al final)
-        if "Folio SOAPAP" in df.columns:
-            df = df[df["Folio SOAPAP"].str.strip().notna()]
-            df = df[df["Folio SOAPAP"].str.strip() != ""]
-            df = df[df["Folio SOAPAP"].str.lower() != "nan"]
+        try:
+            dias_val = int(float(dias_val)) if dias_val not in ["", "None", "nan"] else None
+        except:
+            dias_val = None
 
-        preview = df.to_dict(orient="records")
-        columnas = df.columns.tolist()
+        # Limpiar fechas
+        fecha_ingreso = limpiar_fecha(fila.get("FECHA INGRESO"))
+        fecha_emision = limpiar_fecha(fila.get("FECHA DE EMISIÓN"))
+        fecha_limite = limpiar_fecha(fila.get("FECHA LÍMITE DE ATENCIÓN"))
+        fecha_atencion = limpiar_fecha(fila.get("FECHA ATENCIÓN"))
+        fecha_acuse = limpiar_fecha(fila.get("FECHA ACUSE DE RESPUESTA"))
 
-        return render_template(
-            "importar_excel_preview.html",
-            preview=preview,
-            columnas=columnas
+        # Semáforo → Estatus
+        semaforo = fila.get("SEMAFORO")
+        if semaforo and str(semaforo).strip().lower() == "finalizado":
+            estatus_val = "Solucionado"
+        else:
+            estatus_val = fila.get("ESTATUS")
+
+        # Crear registro
+        nuevo = Oficio(
+            numero=fila.get("FOLIO"),
+            numero_oficio=fila.get("NUMERO DE OFICIO"),
+            fecha=fecha_ingreso,
+            hora=fila.get("HORA"),
+            numero_expediente=fila.get("No. EXP."),
+            quien_emite=fila.get("QUIEN LO EMITE"),
+            con_copia_para=fila.get("CON COPIA PARA"),
+            anexos=fila.get("ANEXOS"),
+            gerencia_turnada=fila.get("GERENCIA"),
+            asunto=fila.get("ASUNTO"),
+            prioridad=fila.get("PRIORIDAD"),
+            termino=termino_val,
+            fecha_limite=fecha_limite,
+            responsable1=fila.get("RESPONSABLE 1"),
+            responsable2=fila.get("RESPONSABLE"),
+            nis=fila.get("NIS"),
+            estatus=estatus_val,
+            observaciones=fila.get("OBSERVACIONES"),
+            fecha_atencion=fecha_atencion,
+            oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
+            fecha_acuse=fecha_acuse,
+            dias_atencion=dias_val
         )
 
-    return render_template("importar_excel.html")
-    
+        db.session.add(nuevo)
+
+    db.session.commit()
+
+    return jsonify({"mensaje": "Importación completada"})
+  
 # --------------------------
 #   FUNCIÓN PARA LIMPIAR FECHAS
 # --------------------------
