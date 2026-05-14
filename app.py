@@ -150,7 +150,7 @@ def usuarios():
 
     lista_usuarios = Usuario.query.all()
     return render_template("usuarios.html", usuarios=lista_usuarios)
-
+    
 # --------------------------
 #   REGISTRO DE OFICIOS (ADMIN)
 # --------------------------
@@ -160,10 +160,35 @@ def nuevo():
     if "rol" not in session or session["rol"] != "admin":
         return "Solo el admin puede registrar oficios"
 
+    # --------------------------
+    #   GET → Generar folio consecutivo sin duplicados
+    # --------------------------
     if request.method == "GET":
-        folio_generado = f"OF-{uuid.uuid4().hex[:6].upper()}"
+
+        # Buscar el último folio que empiece con SOAPAP-
+        ultimo = Oficio.query.filter(
+            Oficio.numero.like("SOAPAP-%")
+        ).order_by(Oficio.id.desc()).first()
+
+        if ultimo:
+            # Extraer el número final del folio
+            try:
+                num = int(ultimo.numero.split("-")[-1])
+            except:
+                num = 0
+
+            # Generar el siguiente consecutivo
+            nuevo_num = num + 1
+            folio_generado = f"SOAPAP-{nuevo_num:05d}"
+        else:
+            # Si no hay registros en la base
+            folio_generado = "SOAPAP-00001"
+
         return render_template("nuevo.html", folio_generado=folio_generado)
 
+    # --------------------------
+    #   POST → Guardar oficio
+    # --------------------------
     if request.method == "POST":
         folio = request.form["folio"]
         numero_oficio = request.form["numero_oficio"]
@@ -219,8 +244,6 @@ def nuevo():
         db.session.commit()
 
         return redirect(url_for("lista"))
-
-    return render_template("nuevo.html")
 
 # --------------------------
 #   LISTA DE OFICIOS
