@@ -10,23 +10,24 @@
 
 <form method="POST" class="row g-3">
 
-    <!-- Folio (solo lectura) -->
+    <!-- ⭐ FOLIO (solo lectura) -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Folio</label>
         <input type="text" class="form-control filtro-gris" value="{{ oficio.numero }}" readonly>
     </div>
 
-    <!-- Estatus -->
+    <!-- ⭐ Estatus -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Estatus</label>
         <select name="estatus" class="form-select filtro-gris">
-            <option value="Pendiente" {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
-            <option value="En proceso" {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
+            <option value="Pendiente"   {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
+            <option value="En proceso"  {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
+            <option value="En acuerdo"  {% if oficio.estatus == "En acuerdo" %}selected{% endif %}>En acuerdo</option>
             <option value="Solucionado" {% if oficio.estatus == "Solucionado" %}selected{% endif %}>Solucionado</option>
         </select>
     </div>
 
-    <!-- Gerencia turnada -->
+    <!-- ⭐ Gerencia turnada -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Gerencia turnada</label>
         <select name="gerencia_turnada" class="form-select filtro-gris">
@@ -39,31 +40,31 @@
         </select>
     </div>
 
-    <!-- Director -->
+    <!-- ⭐ Director -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Director</label>
         <input type="text" name="responsable1" class="form-control filtro-gris" value="{{ oficio.responsable1 }}">
     </div>
 
-    <!-- Gerente -->
+    <!-- ⭐ Gerente -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">Gerente</label>
         <input type="text" name="responsable2" class="form-control filtro-gris" value="{{ oficio.responsable2 }}">
     </div>
 
-    <!-- NIS -->
+    <!-- ⭐ NIS -->
     <div class="col-md-4">
         <label class="form-label fw-bold text-secondary">NIS</label>
         <input type="text" name="nis" class="form-control filtro-gris" value="{{ oficio.nis }}">
     </div>
 
-    <!-- Asunto -->
+    <!-- ⭐ Asunto -->
     <div class="col-md-12">
         <label class="form-label fw-bold text-secondary">Asunto</label>
         <textarea name="asunto" class="form-control filtro-gris" rows="3">{{ oficio.asunto }}</textarea>
     </div>
 
-    <!-- Botones -->
+    <!-- ⭐ BOTONES -->
     <div class="col-md-12 d-flex justify-content-end gap-2 mt-3">
         <a href="{{ url_for('lista') }}" class="btn btn-secondary">Cancelar</a>
         <button class="btn btn-primary">Guardar cambios</button>
