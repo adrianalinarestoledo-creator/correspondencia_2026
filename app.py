@@ -726,11 +726,11 @@ def importar_excel_guardar():
         db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
-
+    
 # --------------------------
-#   DASHBOARD INSTITUCIONAL (CON FILTROS)
+#   DASHBOARD INSTITUCIONAL (CON FILTRO MENSUAL + MULTI GERENCIA)
 # --------------------------
-from sqlalchemy import func, cast, Date
+from sqlalchemy import func
 
 @app.route("/dashboard")
 def dashboard():
@@ -740,7 +740,7 @@ def dashboard():
     # ============================
     anio = request.args.get("anio", session.get("anio"))
     mes = request.args.get("mes", "")
-    gerencia_filtro = request.args.get("gerencia", "")
+    gerencias_filtro = request.args.getlist("gerencia")  # ⭐ MULTI-GERENCIA
     estatus_filtro = request.args.get("estatus", "")
     prioridad_filtro = request.args.get("prioridad", "")
 
@@ -761,14 +761,14 @@ def dashboard():
     # ============================
     # FILTRO POR MES
     # ============================
-    if mes:
+    if mes and mes != "00":
         consulta = consulta.filter(func.substr(Oficio.fecha, 6, 2) == mes)
 
     # ============================
-    # FILTRO POR GERENCIA
+    # FILTRO POR GERENCIAS (MÚLTIPLES)
     # ============================
-    if gerencia_filtro:
-        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+    if gerencias_filtro:
+        consulta = consulta.filter(Oficio.gerencia_turnada.in_(gerencias_filtro))
 
     # ============================
     # FILTRO POR ESTATUS
@@ -801,7 +801,6 @@ def dashboard():
         if total_recibidos > 0 else 0
     )
 
-    # Tiempo promedio de atención
     dias = [o.dias_atencion for o in oficios if o.dias_atencion]
     promedio_dias = round(sum(dias) / len(dias), 2) if dias else 0
 
@@ -835,22 +834,23 @@ def dashboard():
         })
 
     # ============================
-    # GRÁFICAS MENSUALES
+    # GRÁFICAS MENSUALES (SOLO SI ES ANUAL)
     # ============================
-    meses = ["01","02","03","04","05","06","07","08","09","10","11","12"]
+    meses_lista = ["01","02","03","04","05","06","07","08","09","10","11","12"]
 
     recibidos_mes = []
     atendidos_mes = []
     dias_promedio = []
 
-    for m in meses:
-        oficios_mes = [o for o in oficios if o.fecha and o.fecha[5:7] == m]
+    if not mes:  # Solo mostrar gráficas anuales si NO se selecciona mes
+        for m in meses_lista:
+            oficios_mes = [o for o in oficios if o.fecha and o.fecha[5:7] == m]
 
-        recibidos_mes.append(len(oficios_mes))
-        atendidos_mes.append(len([o for o in oficios_mes if o.estatus == "Solucionado"]))
+            recibidos_mes.append(len(oficios_mes))
+            atendidos_mes.append(len([o for o in oficios_mes if o.estatus == "Solucionado"]))
 
-        dias_m = [o.dias_atencion for o in oficios_mes if o.estatus == "Solucionado" and o.dias_atencion]
-        dias_promedio.append(round(sum(dias_m) / len(dias_m), 2) if dias_m else 0)
+            dias_m = [o.dias_atencion for o in oficios_mes if o.estatus == "Solucionado" and o.dias_atencion]
+            dias_promedio.append(round(sum(dias_m) / len(dias_m), 2) if dias_m else 0)
 
     return render_template(
         "dashboard.html",
@@ -862,17 +862,16 @@ def dashboard():
         porcentaje_cumplimiento=porcentaje_cumplimiento,
         promedio_dias=promedio_dias,
         tabla_gerencias=tabla_gerencias,
-        meses=meses,
+        meses=meses_lista,
         recibidos_mes=recibidos_mes,
         atendidos_mes=atendidos_mes,
         dias_promedio=dias_promedio,
         anio=anio,
         mes=mes,
-        gerencia_filtro=gerencia_filtro,
+        gerencias_filtro=gerencias_filtro,
         estatus_filtro=estatus_filtro,
         prioridad_filtro=prioridad_filtro
     )
-
 
 # --------------------------
 #   INICIO DEL SERVIDOR
