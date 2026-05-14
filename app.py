@@ -275,7 +275,7 @@ def lista():
     )
 
 # --------------------------
-#   EXPORTAR A EXCEL
+#   EXPORTAR A EXCEL (CORREGIDO)
 # --------------------------
 
 @app.route("/exportar_excel")
@@ -283,11 +283,15 @@ def exportar_excel():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
+    # ⭐ Admin ve todo — gerencias ven solo lo suyo
     if session.get("rol") == "admin":
-        oficios = Oficio.query.all()
+        oficios = Oficio.query.order_by(Oficio.id.desc()).all()
     else:
-        oficios = Oficio.query.filter_by(gerencia_turnada=session["gerencia"]).all()
+        oficios = Oficio.query.filter_by(
+            gerencia_turnada=session["gerencia"]
+        ).order_by(Oficio.id.desc()).all()
 
+    # ⭐ Convertir registros a diccionarios con los nombres EXACTOS del Excel
     data = []
     for o in oficios:
         data.append({
@@ -312,10 +316,18 @@ def exportar_excel():
             "Observaciones": o.observaciones
         })
 
+    # ⭐ Crear DataFrame
     df = pd.DataFrame(data)
+
+    # ⭐ Exportar a Excel
     output = BytesIO()
+
+    # Puedes usar XlsxWriter o openpyxl
+    # engine="xlsxwriter"  → si ya lo instalaste
+    # engine="openpyxl"    → si quieres evitar dependencias
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
         df.to_excel(writer, index=False, sheet_name="Oficios")
+
     output.seek(0)
 
     return send_file(
@@ -326,7 +338,7 @@ def exportar_excel():
     )
 
 # --------------------------
-#   EXPORTAR A PDF
+#   EXPORTAR A PDF (CORREGIDO)
 # --------------------------
 
 @app.route("/exportar_pdf")
@@ -334,14 +346,46 @@ def exportar_pdf():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
+    # ⭐ Admin ve todo — gerencias ven solo lo suyo
     if session.get("rol") == "admin":
-        oficios = Oficio.query.all()
+        oficios = Oficio.query.order_by(Oficio.id.desc()).all()
     else:
-        oficios = Oficio.query.filter_by(gerencia_turnada=session["gerencia"]).all()
+        oficios = Oficio.query.filter_by(
+            gerencia_turnada=session["gerencia"]
+        ).order_by(Oficio.id.desc()).all()
 
-    html = render_template("oficios_pdf.html", oficios=oficios)
-    pdf = pdfkit.from_string(html, False)
+    # ⭐ Preparar datos para la plantilla PDF
+    data = []
+    for o in oficios:
+        data.append({
+            "Folio SOAPAP": o.numero,
+            "Número de oficio externo": o.numero_oficio,
+            "Fecha": o.fecha,
+            "Hora": o.hora,
+            "Número expediente": o.numero_expediente,
+            "Quien emite": o.quien_emite,
+            "Gerencia": o.gerencia_turnada,
+            "Asunto": o.asunto,
+            "Prioridad": o.prioridad,
+            "Fecha límite": o.fecha_limite,
+            "Responsable Director": o.responsable1,
+            "Responsable Gerente": o.responsable2,
+            "NIS": o.nis,
+            "Estatus": o.estatus,
+            "Fecha atención": o.fecha_atencion,
+            "Días atención": o.dias_atencion,
+            "Oficio respuesta": o.oficio_respuesta,
+            "Fecha acuse": o.fecha_acuse,
+            "Observaciones": o.observaciones
+        })
 
+    # ⭐ Renderizar HTML con la plantilla
+    rendered = render_template("oficios_pdf.html", oficios=data)
+
+    # ⭐ Convertir HTML a PDF
+    pdf = pdfkit.from_string(rendered, False)
+
+    # ⭐ Enviar PDF
     return send_file(
         BytesIO(pdf),
         as_attachment=True,
@@ -457,7 +501,7 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-
+    
 # --------------------------
 #   FUNCIÓN PARA LIMPIAR FECHAS
 # --------------------------
@@ -465,13 +509,12 @@ def importar_excel():
 def limpiar_fecha(valor):
     if not valor or valor in ["nan", "None", ""]:
         return None
-    valor = valor.strip()
-    # Si trae hora, cortar
+    valor = str(valor).strip()
     if " " in valor:
         valor = valor.split(" ")[0]
-    # Asegurar máximo 20 caracteres
     return valor[:20]
-    
+
+
 # --------------------------
 #   GUARDAR IMPORTACIÓN (RECIBE JSON)
 # --------------------------
@@ -491,7 +534,7 @@ def importar_excel_guardar():
 
         # ⭐ LIMPIAR Y CONVERTIR CAMPOS NUMÉRICOS
         termino_val = fila.get("TÉRMINO")
-        dias_val = fila.get("DÍAS DE ATENCIÓN")
+        dias_val = fila.get("Días atención")
 
         try:
             termino_val = int(float(termino_val)) if termino_val not in ["", "None", "nan"] else None
@@ -503,13 +546,13 @@ def importar_excel_guardar():
         except:
             dias_val = None
 
-        # ⭐ LIMPIAR FECHAS
-        fecha = limpiar_fecha(fila.get("FECHA INGRESO"))
-        fecha_limite = limpiar_fecha(fila.get("FECHA LÍMITE DE ATENCIÓN"))
-        fecha_atencion = limpiar_fecha(fila.get("FECHA ATENCIÓN"))
-        fecha_acuse = limpiar_fecha(fila.get("FECHA ACUSE DE RESPUESTA"))
+        # ⭐ LIMPIAR FECHAS (usando encabezados reales del Excel)
+        fecha = limpiar_fecha(fila.get("Fecha"))
+        fecha_limite = limpiar_fecha(fila.get("Fecha límite"))
+        fecha_atencion = limpiar_fecha(fila.get("Fecha atención"))
+        fecha_acuse = limpiar_fecha(fila.get("Fecha acuse"))
 
-        # ⭐ DETECTAR SEMÁFORO
+        # ⭐ DETECTAR SEMÁFORO (si existiera)
         semaforo = None
         for key in fila.keys():
             if key.strip().lower() == "semaforo":
@@ -520,30 +563,30 @@ def importar_excel_guardar():
         if semaforo and str(semaforo).strip().lower() == "finalizado":
             estatus_val = "Solucionado"
         else:
-            estatus_val = fila.get("ESTATUS")
+            estatus_val = fila.get("Estatus")
 
-        # ⭐ CREAR REGISTRO
+        # ⭐ CREAR REGISTRO CON LOS NOMBRES REALES DEL EXCEL
         nuevo = Oficio(
-            numero=fila.get("FOLIO"),
-            numero_oficio=fila.get("NUMERO DE OFICIO"),
+            numero=fila.get("Folio SOAPAP"),
+            numero_oficio=fila.get("Número de oficio externo"),
             fecha=fecha,
-            hora=fila.get("HORA"),
-            numero_expediente=fila.get("No. EXP."),
-            quien_emite=fila.get("QUIEN LO EMITE"),
+            hora=fila.get("Hora"),
+            numero_expediente=fila.get("Número expediente"),
+            quien_emite=fila.get("Quien emite"),
             con_copia_para=fila.get("CON COPIA PARA"),
             anexos=fila.get("ANEXOS"),
-            gerencia_turnada=fila.get("GERENCIA"),
-            asunto=fila.get("ASUNTO"),
-            prioridad=fila.get("PRIORIDAD"),
+            gerencia_turnada=fila.get("Gerencia"),
+            asunto=fila.get("Asunto"),
+            prioridad=fila.get("Prioridad"),
             termino=termino_val,
             fecha_limite=fecha_limite,
-            responsable1=fila.get("RESPONSABLE 1"),
-            responsable2=fila.get("RESPONSABLE"),
+            responsable1=fila.get("Responsable Director"),
+            responsable2=fila.get("Responsable Gerente"),
             nis=fila.get("NIS"),
             estatus=estatus_val,
-            observaciones=fila.get("OBSERVACIONES"),
+            observaciones=fila.get("Observaciones"),
             fecha_atencion=fecha_atencion,
-            oficio_respuesta=fila.get("OFICIO DE RESPUESTA"),
+            oficio_respuesta=fila.get("Oficio respuesta"),
             fecha_acuse=fecha_acuse,
             dias_atencion=dias_val
         )
