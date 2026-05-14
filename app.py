@@ -918,11 +918,14 @@ def usuarios_crear():
     password = request.form["password"]
     rol = request.form["rol"]
 
-    # Crear usuario
+    # Solo usuarios normales llevan gerencia
+    gerencia = request.form.get("gerencia") if rol == "usuario" else None
+
     nuevo = Usuario(
         usuario=usuario,
         nombre_completo=nombre_completo,
         rol=rol,
+        gerencia=gerencia,
         activo=True,
         creado_por=session.get("usuario")
     )
@@ -937,7 +940,6 @@ def usuarios_crear():
         flash("Error: el usuario ya existe", "danger")
 
     return redirect(url_for("usuarios"))
-
 
 # ---------- EDITAR USUARIO ----------
 @app.route("/usuarios/<int:usuario_id>/editar")
