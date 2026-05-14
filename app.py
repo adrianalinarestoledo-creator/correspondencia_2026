@@ -229,16 +229,19 @@ def nuevo():
 @app.route("/lista")
 def lista():
     page = request.args.get("page", 1, type=int)
+    per_page = request.args.get("per_page", 20, type=int)
 
-    q = request.args.get("q", "")
+    q = request.args.get("q", "").strip()
     gerencia_filtro = request.args.get("gerencia", "")
     estatus_filtro = request.args.get("estatus", "")
 
     consulta = Oficio.query
 
-    if session.get("rol") != "admin":
+    # ⭐ Si NO es admin ni superadmin → solo ve su gerencia
+    if session.get("rol") not in ["admin", "superadmin"]:
         consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
 
+    # ⭐ Filtro de búsqueda
     if q:
         consulta = consulta.filter(
             (Oficio.asunto.ilike(f"%{q}%")) |
@@ -246,15 +249,30 @@ def lista():
             (Oficio.numero_oficio.ilike(f"%{q}%"))
         )
 
-    if gerencia_filtro:
+    # ⭐ Filtro por gerencia (solo admin/superadmin)
+    if gerencia_filtro and session.get("rol") in ["admin", "superadmin"]:
         consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
 
+    # ⭐ Filtro por estatus
     if estatus_filtro:
         consulta = consulta.filter_by(estatus=estatus_filtro)
 
-    oficios = consulta.order_by(Oficio.id.desc()).paginate(page=page, per_page=20)
+    # ⭐ Ordenar por ID DESC
+    consulta = consulta.order_by(Oficio.id.desc())
 
-    return render_template("lista.html", oficios=oficios)
+    # ⭐ PAGINACIÓN REAL
+    paginacion = consulta.paginate(page=page, per_page=per_page)
+
+    return render_template(
+        "lista.html",
+        oficios=paginacion.items,
+        paginacion=paginacion,
+        page=page,
+        per_page=per_page,
+        q=q,
+        gerencia_filtro=gerencia_filtro,
+        estatus_filtro=estatus_filtro
+    )
 
 # --------------------------
 #   EXPORTAR A EXCEL
