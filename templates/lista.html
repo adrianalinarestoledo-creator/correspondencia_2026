@@ -127,15 +127,26 @@
 
             <td>{{ o.observaciones }}</td>
 
-            <!-- ⭐ ACCIONES -->
-            <td>
-                {% if o.estatus == "Solucionado" %}
-                    <span class="badge bg-secondary">Finalizado</span>
-                {% else %}
-                    <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">Responder</a>
-                {% endif %}
-            </td>
+<!-- ⭐ ACCIONES -->
+<td class="d-flex flex-column gap-1">
 
+    {% if session['rol'] == 'admin' %}
+        <!-- Botón EDITAR solo para ADMIN -->
+        <a href="{{ url_for('editar', id=o.id) }}" class="btn btn-sm btn-warning">
+            ✏️ Editar
+        </a>
+    {% endif %}
+
+    {% if o.estatus == "Solucionado" %}
+        <span class="badge bg-secondary">Finalizado</span>
+    {% else %}
+        <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">
+            Responder
+        </a>
+    {% endif %}
+
+</td>
+       
         </tr>
         {% endfor %}
     </tbody>
