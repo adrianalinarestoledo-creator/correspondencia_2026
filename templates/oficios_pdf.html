@@ -34,17 +34,17 @@
     <tbody>
         {% for o in oficios %}
         <tr>
-            <td>{{ o.numero }}</td>
-            <td>{{ o.numero_oficio }}</td>
-            <td>{{ o.fecha }}</td>
-            <td>{{ o.hora }}</td>
-            <td>{{ o.asunto }}</td>
-            <td>{{ o.gerencia_turnada }}</td>
-            <td>{{ o.prioridad }}</td>
-            <td>{{ o.fecha_limite }}</td>
-            <td>{{ o.nis }}</td>
-            <td>{{ o.estatus }}</td>
-            <td>{{ o.observaciones }}</td>
+            <td>{{ o["Folio SOAPAP"] }}</td>
+            <td>{{ o["Número de oficio externo"] }}</td>
+            <td>{{ o["Fecha"] }}</td>
+            <td>{{ o["Hora"] }}</td>
+            <td>{{ o["Asunto"] }}</td>
+            <td>{{ o["Gerencia"] }}</td>
+            <td>{{ o["Prioridad"] }}</td>
+            <td>{{ o["Fecha límite"] }}</td>
+            <td>{{ o["NIS"] }}</td>
+            <td>{{ o["Estatus"] }}</td>
+            <td>{{ o["Observaciones"] }}</td>
         </tr>
         {% endfor %}
     </tbody>
@@ -52,4 +52,3 @@
 
 </body>
 </html>
-
