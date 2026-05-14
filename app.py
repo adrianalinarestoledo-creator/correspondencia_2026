@@ -962,13 +962,19 @@ def usuarios_actualizar(usuario_id):
     usuario.nombre_completo = request.form["nombre_completo"].strip()
     usuario.rol = request.form["rol"]
     usuario.activo = True if request.form.get("activo") == "on" else False
+
+    # ⭐ Solo usuarios normales llevan gerencia
+    if usuario.rol == "usuario":
+        usuario.gerencia = request.form.get("gerencia")
+    else:
+        usuario.gerencia = None
+
     usuario.modificado_por = session.get("usuario")
     usuario.modificado_en = datetime.utcnow()
 
     db.session.commit()
     flash("Usuario actualizado correctamente", "success")
     return redirect(url_for("usuarios"))
-
 
 # ---------- CAMBIAR CONTRASEÑA ----------
 @app.route("/usuarios/<int:usuario_id>/password")
