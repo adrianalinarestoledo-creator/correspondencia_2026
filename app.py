@@ -266,7 +266,7 @@ def editar(id):
         return redirect(url_for("lista"))
 
 # --------------------------
-#   LISTA DE OFICIOS
+#   LISTA DE OFICIOS (FINAL)
 # --------------------------
 
 @app.route("/lista")
@@ -277,6 +277,8 @@ def lista():
     q = request.args.get("q", "").strip()
     gerencia_filtro = request.args.get("gerencia", "")
     estatus_filtro = request.args.get("estatus", "")
+    fecha_ini = request.args.get("fecha_ini", "")
+    fecha_fin = request.args.get("fecha_fin", "")
 
     consulta = Oficio.query
 
@@ -284,7 +286,7 @@ def lista():
     if session.get("rol") not in ["admin", "superadmin"]:
         consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
 
-    # ⭐ Filtro de búsqueda
+    # ⭐ Filtro de búsqueda general
     if q:
         consulta = consulta.filter(
             (Oficio.asunto.ilike(f"%{q}%")) |
@@ -300,6 +302,14 @@ def lista():
     if estatus_filtro:
         consulta = consulta.filter_by(estatus=estatus_filtro)
 
+    # ⭐ Filtro por fecha inicial
+    if fecha_ini:
+        consulta = consulta.filter(Oficio.fecha >= fecha_ini)
+
+    # ⭐ Filtro por fecha final
+    if fecha_fin:
+        consulta = consulta.filter(Oficio.fecha <= fecha_fin)
+
     # ⭐ Ordenar por ID DESC
     consulta = consulta.order_by(Oficio.id.desc())
 
@@ -314,7 +324,9 @@ def lista():
         per_page=per_page,
         q=q,
         gerencia_filtro=gerencia_filtro,
-        estatus_filtro=estatus_filtro
+        estatus_filtro=estatus_filtro,
+        fecha_ini=fecha_ini,
+        fecha_fin=fecha_fin
     )
 
 # --------------------------
