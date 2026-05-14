@@ -70,10 +70,25 @@
     </div>
 
     <!-- ⭐ BOTONES -->
-    <div class="col-md-3 d-flex align-items-end gap-2">
-        <button class="btn btn-primary">Filtrar</button>
-        <a href="{{ url_for('lista') }}" class="btn btn-secondary">Limpiar</a>
-    </div>
+<div class="col-md-3 d-flex align-items-end gap-2">
+
+    <button class="btn btn-primary">Filtrar</button>
+
+    <a href="{{ url_for('lista') }}" class="btn btn-secondary">Limpiar</a>
+
+    <!-- ⭐ EXPORTAR PDF CON FILTROS ACTIVOS -->
+    <a class="btn btn-danger"
+       href="{{ url_for('exportar_pdf',
+                        q=q,
+                        gerencia=gerencia_filtro,
+                        estatus=estatus_filtro,
+                        fecha_ini=fecha_ini,
+                        fecha_fin=fecha_fin) }}">
+        Exportar PDF
+    </a>
+
+</div>
+
 
 </form>
 
