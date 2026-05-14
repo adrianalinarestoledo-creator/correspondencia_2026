@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block contenido %}
-<h3 class="mb-3">Usuarios del sistema</h3>
+<h3 class="mb-3">👥 Usuarios del sistema</h3>
 
 <a href="{{ url_for('usuarios_nuevo') }}" class="btn btn-primary mb-3">➕ Nuevo usuario</a>
 
@@ -17,27 +17,35 @@
             <th>Acciones</th>
         </tr>
     </thead>
+
     <tbody>
         {% for u in usuarios %}
         <tr>
-            <td>{{ u[0] }}</td>
-            <td>{{ u[1] }}</td>
-            <td>{{ u[2] }}</td>
-            <td>{{ u[3] }}</td>
+            <td>{{ u.id }}</td>
+            <td>{{ u.usuario }}</td>
+            <td>{{ u.nombre_completo }}</td>
+            <td>{{ u.rol }}</td>
+
             <td>
-                {% if u[4] %}
+                {% if u.activo %}
                     <span class="badge bg-success">Sí</span>
                 {% else %}
                     <span class="badge bg-secondary">No</span>
                 {% endif %}
             </td>
-            <td>{{ u[5] }}</td>
+
+            <td>{{ u.creado_en.strftime("%Y-%m-%d") if u.creado_en else "" }}</td>
+
             <td class="d-flex gap-1">
-                <a href="{{ url_for('usuarios_editar', usuario_id=u[0]) }}" class="btn btn-sm btn-outline-primary">Editar</a>
-                <a href="{{ url_for('usuarios_password', usuario_id=u[0]) }}" class="btn btn-sm btn-outline-warning">Contraseña</a>
+                <a href="{{ url_for('usuarios_editar', usuario_id=u.id) }}"
+                   class="btn btn-sm btn-outline-primary">Editar</a>
+
+                <a href="{{ url_for('usuarios_password', usuario_id=u.id) }}"
+                   class="btn btn-sm btn-outline-warning">Contraseña</a>
 
                 {% if session.get('rol') == 'superadmin' %}
-                <form action="{{ url_for('usuarios_eliminar', usuario_id=u[0]) }}" method="POST"
+                <form action="{{ url_for('usuarios_eliminar', usuario_id=u.id) }}"
+                      method="POST"
                       onsubmit="return confirm('¿Eliminar usuario definitivamente?');">
                     <button class="btn btn-sm btn-outline-danger">Eliminar</button>
                 </form>
