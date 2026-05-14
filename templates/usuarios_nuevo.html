@@ -22,10 +22,23 @@
 
     <div class="mb-3">
         <label class="form-label">Rol</label>
-        <select name="rol" class="form-select" required>
+        <select name="rol" id="rolSelect" class="form-select" required>
             <option value="usuario">Usuario</option>
             <option value="admin">Administrador</option>
             <option value="superadmin">Superadministrador</option>
+        </select>
+    </div>
+
+    <!-- ⭐ Campo de gerencia (solo para usuarios normales) -->
+    <div class="mb-3" id="gerenciaDiv">
+        <label class="form-label">Gerencia</label>
+        <select name="gerencia" class="form-select">
+            <option value="DG">DG</option>
+            <option value="GAL">GAL</option>
+            <option value="GAL-Despacho">GAL-Despacho</option>
+            <option value="GPSOI">GPSOI</option>
+            <option value="GSMA">GSMA</option>
+            <option value="GSTS">GSTS</option>
         </select>
     </div>
 
@@ -35,5 +48,21 @@
     </div>
 
 </form>
-{% endblock %}
 
+<script>
+    const rolSelect = document.getElementById("rolSelect");
+    const gerenciaDiv = document.getElementById("gerenciaDiv");
+
+    function actualizarGerencia() {
+        if (rolSelect.value === "usuario") {
+            gerenciaDiv.style.display = "block";
+        } else {
+            gerenciaDiv.style.display = "none";
+        }
+    }
+
+    rolSelect.addEventListener("change", actualizarGerencia);
+    actualizarGerencia();
+</script>
+
+{% endblock %}
