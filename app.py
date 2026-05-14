@@ -379,9 +379,8 @@ def exportar_excel():
         download_name="oficios.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-
 # --------------------------
-#   EXPORTAR A PDF (CORREGIDO)
+#   EXPORTAR A PDF (FINAL)
 # --------------------------
 
 @app.route("/exportar_pdf")
@@ -425,8 +424,20 @@ def exportar_pdf():
     # ⭐ Renderizar HTML con la plantilla
     rendered = render_template("oficios_pdf.html", oficios=data)
 
-    # ⭐ Convertir HTML a PDF
-    pdf = pdfkit.from_string(rendered, False)
+    # ⭐ Opciones profesionales para PDF
+    options = {
+        "page-size": "Letter",
+        "orientation": "Portrait",
+        "encoding": "UTF-8",
+        "margin-top": "0.5in",
+        "margin-bottom": "0.5in",
+        "margin-left": "0.3in",
+        "margin-right": "0.3in",
+        "enable-local-file-access": None
+    }
+
+    # ⭐ Convertir HTML a PDF con opciones
+    pdf = pdfkit.from_string(rendered, False, options=options)
 
     # ⭐ Enviar PDF
     return send_file(
