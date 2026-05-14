@@ -161,38 +161,32 @@ def nuevo():
         return "Solo el admin puede registrar oficios"
 
     # --------------------------
-    #   GET → Generar folio consecutivo sin duplicados
+    #   GET → Solo muestra el formulario
     # --------------------------
     if request.method == "GET":
+        return render_template("nuevo.html")
 
-        # Buscar el último folio que empiece con SOAPAP-
+    # --------------------------
+    #   POST → Genera folio real y guarda
+    # --------------------------
+    if request.method == "POST":
+
+        # Generar folio real en el momento del guardado
         ultimo = Oficio.query.filter(
             Oficio.numero.like("SOAPAP-%")
         ).order_by(Oficio.id.desc()).first()
 
         if ultimo:
-            # Extraer el número final del folio
             try:
                 num = int(ultimo.numero.split("-")[-1])
             except:
                 num = 0
-
-            # Generar el siguiente consecutivo
             nuevo_num = num + 1
-            folio_generado = f"SOAPAP-{nuevo_num:05d}"
+            folio = f"SOAPAP-{nuevo_num:05d}"
         else:
-            # Si no hay registros en la base
-            folio_generado = "SOAPAP-00001"
+            folio = "SOAPAP-00001"
 
-        return render_template("nuevo.html", folio_generado=folio_generado)
-
-    # --------------------------
-    #   POST → Guardar oficio
-    # --------------------------
-    if request.method == "POST":
-        folio = request.form["folio"]
         numero_oficio = request.form["numero_oficio"]
-
         fecha = datetime.strptime(request.form["fecha"], "%Y-%m-%d")
         hora = request.form["hora"]
         numero_expediente = request.form["numero_expediente"]
