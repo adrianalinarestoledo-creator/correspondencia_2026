@@ -411,16 +411,23 @@ def importar_excel():
     if request.method == "POST":
         archivo = request.files["archivo"]
 
+        # Leer Excel usando fila 2 como encabezados (header=1)
         df = pd.read_excel(archivo, header=1)
 
-        # ⭐ LIMPIAR ENCABEZADOS (ESPACIOS, SALTOS, TABULACIONES)
+        # ⭐ LIMPIAR ENCABEZADOS
         df.columns = df.columns.str.strip()
 
-        # Convertir todo a string para evitar errores JSON
+        # ⭐ ELIMINAR FILAS TOTALMENTE VACÍAS
+        df = df.dropna(how="all")
+
+        # ⭐ Convertir todo a string para evitar errores JSON
         df = df.astype(str)
 
-        # Cortar hasta la fila 2698
-        df = df.iloc[:2698]
+        # ⭐ ELIMINAR FILAS SIN FOLIO (evita basura al final)
+        if "FOLIO" in df.columns:
+            df = df[df["FOLIO"].astype(str).str.strip().notna()]
+            df = df[df["FOLIO"].astype(str).str.strip() != ""]
+            df = df[df["FOLIO"].astype(str).str.lower() != "nan"]
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
@@ -432,7 +439,6 @@ def importar_excel():
         )
 
     return render_template("importar_excel.html")
-
 
 # --------------------------
 #   FUNCIÓN PARA LIMPIAR FECHAS
@@ -459,7 +465,7 @@ def importar_excel_guardar():
     if not datos:
         return jsonify({"error": "No se recibieron datos"}), 400
 
-    # ⭐ REEMPLAZAR TODO: BORRAR TABLA COMPLETA ANTES DE IMPORTAR
+    # ⭐ BORRAR TODO ANTES DE IMPORTAR
     db.session.query(Oficio).delete()
     db.session.commit()
 
@@ -485,7 +491,7 @@ def importar_excel_guardar():
         fecha_atencion = limpiar_fecha(fila.get("FECHA ATENCIÓN"))
         fecha_acuse = limpiar_fecha(fila.get("FECHA ACUSE DE RESPUESTA"))
 
-        # ⭐ DETECTAR SEMÁFORO (aunque venga con espacios o mayúsculas)
+        # ⭐ DETECTAR SEMÁFORO
         semaforo = None
         for key in fila.keys():
             if key.strip().lower() == "semaforo":
@@ -498,7 +504,7 @@ def importar_excel_guardar():
         else:
             estatus_val = fila.get("ESTATUS")
 
-        # ⭐ CREAR EL REGISTRO
+        # ⭐ CREAR REGISTRO
         nuevo = Oficio(
             numero=fila.get("FOLIO"),
             numero_oficio=fila.get("NUMERO DE OFICIO"),
