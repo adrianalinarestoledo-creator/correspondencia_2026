@@ -25,11 +25,11 @@
 
         <select name="estatus" id="estatus" class="form-select" onchange="mostrarCampos()"
             {% if oficio.estatus == "Solucionado" and session['rol'] != 'admin' %}disabled{% endif %}>
-            
-            <option value="Pendiente" {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
-            <option value="En proceso" {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
-            <option value="En acuerdo" {% if oficio.estatus == "En acuerdo" %}selected{% endif %}>En acuerdo</option>
-            <option value="Solucionado" {% if oficio.estatus == "Solucionado" %}selected{% endif %}>Solucionado</option>
+
+            <option value="Pendiente"     {% if oficio.estatus == "Pendiente" %}selected{% endif %}>Pendiente</option>
+            <option value="En proceso"    {% if oficio.estatus == "En proceso" %}selected{% endif %}>En proceso</option>
+            <option value="En acuerdo"    {% if oficio.estatus == "En acuerdo" %}selected{% endif %}>En acuerdo</option>
+            <option value="Solucionado"   {% if oficio.estatus == "Solucionado" %}selected{% endif %}>Solucionado</option>
         </select>
 
         {% if oficio.estatus == "Solucionado" %}
@@ -47,18 +47,29 @@
 
         <div class="col-md-4">
             <label class="form-label fw-bold text-secondary">Fecha de atención</label>
-            <input type="date" name="fecha_atencion" class="form-control" value="{{ oficio.fecha_atencion }}">
+            <input type="date" name="fecha_atencion" class="form-control"
+                   value="{{ oficio.fecha_atencion }}">
         </div>
 
         <div class="col-md-4">
             <label class="form-label fw-bold text-secondary">Oficio de respuesta</label>
-            <input type="text" name="oficio_respuesta" class="form-control" value="{{ oficio.oficio_respuesta }}">
+            <input type="text" name="oficio_respuesta" class="form-control"
+                   value="{{ oficio.oficio_respuesta }}">
         </div>
 
         <div class="col-md-4">
             <label class="form-label fw-bold text-secondary">Fecha de acuse</label>
-            <input type="date" name="fecha_acuse" class="form-control" value="{{ oficio.fecha_acuse }}">
+            <input type="date" name="fecha_acuse" class="form-control"
+                   value="{{ oficio.fecha_acuse }}">
         </div>
+
+        <!-- ⭐ DÍAS DE ATENCIÓN (solo lectura) -->
+        {% if oficio.dias_atencion %}
+        <div class="col-md-4 mt-3">
+            <label class="form-label fw-bold text-secondary">Días de atención</label>
+            <input type="number" class="form-control" value="{{ oficio.dias_atencion }}" readonly>
+        </div>
+        {% endif %}
 
     </div>
 
