@@ -37,7 +37,7 @@
         {% endif %}
     </div>
 
-    <!-- ⭐ CAMPOS ADICIONALES (DENTRO DE LA FILA) -->
+    <!-- ⭐ CAMPOS ADICIONALES -->
     <div id="campos_extra" class="row g-3 mt-2" style="display:none;">
 
         <div class="col-md-12">
@@ -49,6 +49,12 @@
             <label class="form-label fw-bold text-secondary">Fecha de atención</label>
             <input type="date" name="fecha_atencion" class="form-control"
                    value="{{ oficio.fecha_atencion }}">
+        </div>
+
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-secondary">NIS</label>
+            <input type="text" name="nis" class="form-control"
+                   value="{{ oficio.nis }}">
         </div>
 
         <div class="col-md-4">
