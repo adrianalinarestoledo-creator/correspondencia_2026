@@ -584,6 +584,9 @@ def responder(id):
         oficio.oficio_respuesta = request.form.get("oficio_respuesta")
         oficio.fecha_acuse = request.form.get("fecha_acuse")
 
+        # ⭐ NUEVO: GUARDAR NIS
+        oficio.nis = request.form.get("nis")
+
         # ============================
         # CÁLCULO DE DÍAS DE ATENCIÓN
         # ============================
