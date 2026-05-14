@@ -635,7 +635,7 @@ def importar_excel_guardar():
     return jsonify({"mensaje": "Importación completada"})
 
 # --------------------------
-#   DASHBOARD
+#   DASHBOARD COMPLETO
 # --------------------------
 
 @app.route("/dashboard")
@@ -643,39 +643,84 @@ def dashboard():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
+    # Admin ve todo, gerencias solo lo suyo
     if session.get("rol") == "admin":
         oficios = Oficio.query.all()
     else:
         oficios = Oficio.query.filter_by(gerencia_turnada=session["gerencia"]).all()
 
-    total = len(oficios)
-    atendidos = len([o for o in oficios if o.estatus == "Atendido"])
-    pendientes = len([o for o in oficios if o.estatus != "Atendido"])
+    # ============================
+    # KPIs GENERALES
+    # ============================
+    total_recibidos = len(oficios)
+    total_atendidos = len([o for o in oficios if o.estatus == "Solucionado"])
+    total_pendientes = total_recibidos - total_atendidos
 
-    por_gerencia = {}
-    for o in oficios:
-        g = o.gerencia_turnada
-        por_gerencia[g] = por_gerencia.get(g, 0) + 1
+    porcentaje_cumplimiento = 0
+    if total_recibidos > 0:
+        porcentaje_cumplimiento = round((total_atendidos / total_recibidos) * 100, 2)
 
-    por_prioridad = {}
-    for o in oficios:
-        p = o.prioridad
-        por_prioridad[p] = por_prioridad.get(p, 0) + 1
+    # ============================
+    # TABLA POR GERENCIA
+    # ============================
+    gerencias = ["DG", "GAL", "GAL-Despacho", "GPSOI", "GSMA", "GSTS"]
+    tabla_gerencias = []
 
-    por_mes = {}
-    for o in oficios:
-        if o.fecha:
-            mes = o.fecha[:7]
-            por_mes[mes] = por_mes.get(mes, 0) + 1
+    for g in gerencias:
+        recibidos = len([o for o in oficios if o.gerencia_turnada == g])
+        atendidos = len([o for o in oficios if o.gerencia_turnada == g and o.estatus == "Solucionado"])
+        pendientes = recibidos - atendidos
+
+        cumplimiento = 0
+        if recibidos > 0:
+            cumplimiento = round((atendidos / recibidos) * 100, 2)
+
+        # Promedio de días (solo atendidos)
+        dias = []
+        for o in oficios:
+            if o.gerencia_turnada == g and o.estatus == "Solucionado" and o.dias_atencion:
+                dias.append(o.dias_atencion)
+
+        promedio_dias = round(sum(dias) / len(dias), 2) if dias else 0
+
+        tabla_gerencias.append({
+            "gerencia": g,
+            "recibidos": recibidos,
+            "atendidos": atendidos,
+            "pendientes": pendientes,
+            "cumplimiento": cumplimiento,
+            "promedio_dias": promedio_dias
+        })
+
+    # ============================
+    # GRÁFICAS MENSUALES
+    # ============================
+    meses = ["01","02","03","04","05","06","07","08","09","10","11","12"]
+
+    recibidos_mes = []
+    atendidos_mes = []
+    dias_promedio = []
+
+    for m in meses:
+        oficios_mes = [o for o in oficios if o.fecha and o.fecha[5:7] == m]
+
+        recibidos_mes.append(len(oficios_mes))
+        atendidos_mes.append(len([o for o in oficios_mes if o.estatus == "Solucionado"]))
+
+        dias = [o.dias_atencion for o in oficios_mes if o.estatus == "Solucionado" and o.dias_atencion]
+        dias_promedio.append(round(sum(dias) / len(dias), 2) if dias else 0)
 
     return render_template(
         "dashboard.html",
-        total=total,
-        atendidos=atendidos,
-        pendientes=pendientes,
-        por_gerencia=por_gerencia,
-        por_prioridad=por_prioridad,
-        por_mes=por_mes
+        total_recibidos=total_recibidos,
+        total_atendidos=total_atendidos,
+        total_pendientes=total_pendientes,
+        porcentaje_cumplimiento=porcentaje_cumplimiento,
+        tabla_gerencias=tabla_gerencias,
+        meses=meses,
+        recibidos_mes=recibidos_mes,
+        atendidos_mes=atendidos_mes,
+        dias_promedio=dias_promedio
     )
 
 # --------------------------
