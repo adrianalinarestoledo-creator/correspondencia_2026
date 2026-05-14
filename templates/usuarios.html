@@ -1,33 +1,47 @@
 {% extends "base.html" %}
 
-{% block menu %}
-    {% include "menu.html" %}
-{% endblock %}
-
 {% block contenido %}
-<h2 class="mb-3">Usuarios del sistema</h2>
+<h3 class="mb-3">Usuarios del sistema</h3>
 
 <a href="{{ url_for('usuarios_nuevo') }}" class="btn btn-primary mb-3">➕ Nuevo usuario</a>
 
-<table class="table table-bordered table-striped">
-    <thead class="table-dark">
+<table class="table table-striped table-sm">
+    <thead>
         <tr>
+            <th>ID</th>
             <th>Usuario</th>
+            <th>Nombre</th>
             <th>Rol</th>
             <th>Activo</th>
+            <th>Creado</th>
             <th>Acciones</th>
         </tr>
     </thead>
-
     <tbody>
         {% for u in usuarios %}
         <tr>
-            <td>{{ u.usuario }}</td>
-            <td>{{ u.rol }}</td>
-            <td>{{ "Sí" if u.activo else "No" }}</td>
+            <td>{{ u[0] }}</td>
+            <td>{{ u[1] }}</td>
+            <td>{{ u[2] }}</td>
+            <td>{{ u[3] }}</td>
             <td>
-                <a href="{{ url_for('usuarios_editar', id=u.id) }}" class="btn btn-sm btn-warning">Editar</a>
-                <a href="{{ url_for('usuarios_bloquear', id=u.id) }}" class="btn btn-sm btn-danger">Bloquear</a>
+                {% if u[4] %}
+                    <span class="badge bg-success">Sí</span>
+                {% else %}
+                    <span class="badge bg-secondary">No</span>
+                {% endif %}
+            </td>
+            <td>{{ u[5] }}</td>
+            <td class="d-flex gap-1">
+                <a href="{{ url_for('usuarios_editar', usuario_id=u[0]) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                <a href="{{ url_for('usuarios_password', usuario_id=u[0]) }}" class="btn btn-sm btn-outline-warning">Contraseña</a>
+
+                {% if session.get('rol') == 'superadmin' %}
+                <form action="{{ url_for('usuarios_eliminar', usuario_id=u[0]) }}" method="POST"
+                      onsubmit="return confirm('¿Eliminar usuario definitivamente?');">
+                    <button class="btn btn-sm btn-outline-danger">Eliminar</button>
+                </form>
+                {% endif %}
             </td>
         </tr>
         {% endfor %}
