@@ -1,167 +1,227 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard Institucional</title>
+{% extends "base.html" %}
 
-    <!-- Bootstrap -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+{% block menu %}
+    {% include "menu.html" %}
+{% endblock %}
 
-    <style>
-        body {
-            background: #f4f6f9;
-        }
-        .kpi-card {
-            border-radius: 12px;
-            padding: 20px;
-            color: white;
-            font-weight: bold;
-            text-align: center;
-        }
-        .kpi-number {
-            font-size: 32px;
-            font-weight: bold;
-        }
-        .table-container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 25px;
-        }
-        .chart-box {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 25px;
-        }
-    </style>
-</head>
+{% block contenido %}
 
-<body>
+<h3 class="mb-4 text-primary fw-bold">📊 Dashboard Institucional {{ anio }}</h3>
 
-<div class="container mt-4">
+<form method="GET" class="row g-3 mb-4 p-3 border rounded bg-light">
 
-    <h2 class="text-center mb-4">📊 Dashboard Institucional 2026</h2>
-
-    <!-- ===================== TARJETAS KPI ===================== -->
-    <div class="row">
-
-        <div class="col-md-3">
-            <div class="kpi-card" style="background:#007bff;">
-                <div>Total Recibidos</div>
-                <div class="kpi-number">{{ total_recibidos }}</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="kpi-card" style="background:#28a745;">
-                <div>Total Atendidos</div>
-                <div class="kpi-number">{{ total_atendidos }}</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="kpi-card" style="background:#ffc107; color:black;">
-                <div>Pendientes</div>
-                <div class="kpi-number">{{ total_pendientes }}</div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-            <div class="kpi-card" style="background:#6f42c1;">
-                <div>% Cumplimiento</div>
-                <div class="kpi-number">{{ porcentaje_cumplimiento }}%</div>
-            </div>
-        </div>
-
+    <!-- AÑO -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Año</label>
+        <input type="number" name="anio" class="form-control"
+               value="{{ anio }}">
     </div>
 
-    <!-- ===================== TABLA EJECUTIVA POR GERENCIA ===================== -->
-    <div class="table-container">
-        <h4 class="mb-3">📌 Desempeño por Gerencia</h4>
-
-        <table class="table table-bordered table-striped">
-            <thead class="table-dark">
-                <tr>
-                    <th>Gerencia</th>
-                    <th>Recibidos</th>
-                    <th>Atendidos</th>
-                    <th>Pendientes</th>
-                    <th>% Cumplimiento</th>
-                    <th>Promedio Días (Atendidos)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for fila in tabla_gerencias %}
-                <tr>
-                    <td>{{ fila.gerencia }}</td>
-                    <td>{{ fila.recibidos }}</td>
-                    <td>{{ fila.atendidos }}</td>
-                    <td>{{ fila.pendientes }}</td>
-                    <td>{{ fila.cumplimiento }}%</td>
-                    <td>{{ fila.promedio_dias }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <!-- MES -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Mes</label>
+        <select name="mes" class="form-select">
+            <option value="">Anual</option>
+            <option value="01" {% if mes=='01' %}selected{% endif %}>Enero</option>
+            <option value="02" {% if mes=='02' %}selected{% endif %}>Febrero</option>
+            <option value="03" {% if mes=='03' %}selected{% endif %}>Marzo</option>
+            <option value="04" {% if mes=='04' %}selected{% endif %}>Abril</option>
+            <option value="05" {% if mes=='05' %}selected{% endif %}>Mayo</option>
+            <option value="06" {% if mes=='06' %}selected{% endif %}>Junio</option>
+            <option value="07" {% if mes=='07' %}selected{% endif %}>Julio</option>
+            <option value="08" {% if mes=='08' %}selected{% endif %}>Agosto</option>
+            <option value="09" {% if mes=='09' %}selected{% endif %}>Septiembre</option>
+            <option value="10" {% if mes=='10' %}selected{% endif %}>Octubre</option>
+            <option value="11" {% if mes=='11' %}selected{% endif %}>Noviembre</option>
+            <option value="12" {% if mes=='12' %}selected{% endif %}>Diciembre</option>
+        </select>
     </div>
 
-    <!-- ===================== GRÁFICAS ===================== -->
-    <div class="chart-box">
-        <h4 class="mb-3">📈 Gráfica Mensual</h4>
-        <canvas id="grafica_mensual"></canvas>
+    <!-- GERENCIAS (MULTI) -->
+    <div class="col-md-4">
+        <label class="form-label fw-bold text-secondary">Gerencias</label>
+
+        <div class="border rounded p-2 bg-white" style="max-height: 150px; overflow-y: auto;">
+            {% set lista_gerencias = ["DG","GAL","GAL-Despacho","GPSOI","GSMA","GSTS"] %}
+            {% for g in lista_gerencias %}
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="gerencia"
+                       value="{{ g }}" {% if g in gerencias_filtro %}checked{% endif %}>
+                <label class="form-check-label">{{ g }}</label>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 
-    <div class="chart-box">
-        <h4 class="mb-3">📊 Promedio de Días por Mes</h4>
-        <canvas id="grafica_dias"></canvas>
+    <!-- ESTATUS -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Estatus</label>
+        <select name="estatus" class="form-select">
+            <option value="">Todos</option>
+            <option value="Pendiente" {% if estatus_filtro=='Pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="En proceso" {% if estatus_filtro=='En proceso' %}selected{% endif %}>En proceso</option>
+            <option value="En acuerdo" {% if estatus_filtro=='En acuerdo' %}selected{% endif %}>En acuerdo</option>
+            <option value="Solucionado" {% if estatus_filtro=='Solucionado' %}selected{% endif %}>Solucionado</option>
+        </select>
+    </div>
+
+    <!-- PRIORIDAD -->
+    <div class="col-md-2">
+        <label class="form-label fw-bold text-secondary">Prioridad</label>
+        <select name="prioridad" class="form-select">
+            <option value="">Todas</option>
+            <option value="Urgente" {% if prioridad_filtro=='Urgente' %}selected{% endif %}>Urgente</option>
+            <option value="Alta" {% if prioridad_filtro=='Alta' %}selected{% endif %}>Alta</option>
+            <option value="Media" {% if prioridad_filtro=='Media' %}selected{% endif %}>Media</option>
+            <option value="Baja" {% if prioridad_filtro=='Baja' %}selected{% endif %}>Baja</option>
+        </select>
+    </div>
+
+    <!-- BOTONES -->
+    <div class="col-md-12 d-flex justify-content-end gap-2 mt-2">
+        <button class="btn btn-primary">Aplicar filtros</button>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Limpiar</a>
+    </div>
+
+</form>
+
+<!-- ============================
+     TARJETAS KPI
+============================ -->
+<div class="row text-center mb-4">
+
+    <div class="col-md-3">
+        <div class="p-3 bg-primary text-white rounded shadow-sm">
+            <h4>{{ total_recibidos }}</h4>
+            <p class="mb-0">Recibidos</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 bg-danger text-white rounded shadow-sm">
+            <h4>{{ total_pendientes }}</h4>
+            <p class="mb-0">Pendientes</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 bg-warning text-dark rounded shadow-sm">
+            <h4>{{ total_proceso }}</h4>
+            <p class="mb-0">En proceso</p>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="p-3 bg-success text-white rounded shadow-sm">
+            <h4>{{ total_atendidos }}</h4>
+            <p class="mb-0">Solucionados</p>
+        </div>
     </div>
 
 </div>
 
-<!-- Chart.js -->
+<!-- KPI CUMPLIMIENTO -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="p-3 bg-info text-dark rounded shadow-sm">
+            <h4>{{ porcentaje_cumplimiento }}%</h4>
+            <p class="mb-0">Cumplimiento</p>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="p-3 bg-secondary text-white rounded shadow-sm">
+            <h4>{{ promedio_dias }}</h4>
+            <p class="mb-0">Promedio días de atención</p>
+        </div>
+    </div>
+</div>
+
+<!-- ============================
+     GRÁFICAS (solo anual)
+============================ -->
+{% if not mes %}
+<div class="row mb-4">
+
+    <div class="col-md-6">
+        <canvas id="graficaRecibidos"></canvas>
+    </div>
+
+    <div class="col-md-6">
+        <canvas id="graficaAtendidos"></canvas>
+    </div>
+
+</div>
+{% endif %}
+
+<!-- ============================
+     TABLA EJECUTIVA POR GERENCIA
+============================ -->
+<h4 class="mt-4 text-primary fw-bold">📌 Resumen por Gerencia</h4>
+
+<table class="table table-bordered table-striped mt-3">
+    <thead class="table-dark">
+        <tr>
+            <th>Gerencia</th>
+            <th>Recibidos</th>
+            <th>Pendientes</th>
+            <th>En proceso</th>
+            <th>En acuerdo</th>
+            <th>Solucionados</th>
+            <th>% Cumplimiento</th>
+            <th>Promedio días</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for g in tabla_gerencias %}
+        <tr>
+            <td>{{ g.gerencia }}</td>
+            <td>{{ g.recibidos }}</td>
+            <td>{{ g.pendientes }}</td>
+            <td>{{ g.proceso }}</td>
+            <td>{{ g.acuerdo }}</td>
+            <td>{{ g.atendidos }}</td>
+            <td>{{ g.cumplimiento }}%</td>
+            <td>{{ g.promedio_dias }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- ============================
+     SCRIPTS DE GRÁFICAS
+============================ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+{% if not mes %}
 <script>
-    // ===================== GRÁFICA MENSUAL =====================
-    const ctx1 = document.getElementById('grafica_mensual');
-    new Chart(ctx1, {
+    // Recibidos por mes
+    new Chart(document.getElementById('graficaRecibidos'), {
         type: 'bar',
         data: {
-            labels: {{ meses | safe }},
-            datasets: [
-                {
-                    label: 'Recibidos',
-                    data: {{ recibidos_mes | safe }},
-                    backgroundColor: '#007bff'
-                },
-                {
-                    label: 'Atendidos',
-                    data: {{ atendidos_mes | safe }},
-                    backgroundColor: '#28a745'
-                }
-            ]
+            labels: {{ meses|tojson }},
+            datasets: [{
+                label: 'Recibidos',
+                data: {{ recibidos_mes|tojson }},
+                backgroundColor: '#0d6efd'
+            }]
         }
     });
 
-    // ===================== GRÁFICA PROMEDIO DÍAS =====================
-    const ctx2 = document.getElementById('grafica_dias');
-    new Chart(ctx2, {
+    // Atendidos por mes
+    new Chart(document.getElementById('graficaAtendidos'), {
         type: 'line',
         data: {
-            labels: {{ meses | safe }},
-            datasets: [
-                {
-                    label: 'Promedio de días',
-                    data: {{ dias_promedio | safe }},
-                    borderColor: '#6f42c1',
-                    borderWidth: 3
-                }
-            ]
+            labels: {{ meses|tojson }},
+            datasets: [{
+                label: 'Atendidos',
+                data: {{ atendidos_mes|tojson }},
+                borderColor: '#198754',
+                borderWidth: 3
+            }]
         }
     });
 </script>
+{% endif %}
 
-</body>
-</html>
+{% endblock %}
