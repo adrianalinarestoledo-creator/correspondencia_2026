@@ -8,3 +8,4 @@ openpyxl
 reportlab
 pdfkit
 psycopg2-binary
+XlsxWriter
