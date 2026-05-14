@@ -473,8 +473,8 @@ def importar_excel():
     if request.method == "POST":
         archivo = request.files["archivo"]
 
-        # Leer Excel usando fila 2 como encabezados (header=1)
-        df = pd.read_excel(archivo, header=1)
+        # ⭐ Tu Excel tiene encabezados en la fila 1 → header=0
+        df = pd.read_excel(archivo, header=0)
 
         # ⭐ LIMPIAR ENCABEZADOS
         df.columns = df.columns.str.strip()
@@ -482,14 +482,14 @@ def importar_excel():
         # ⭐ ELIMINAR FILAS TOTALMENTE VACÍAS
         df = df.dropna(how="all")
 
-        # ⭐ Convertir todo a string para evitar errores JSON
+        # ⭐ Convertir todo a string
         df = df.astype(str)
 
-        # ⭐ ELIMINAR FILAS SIN FOLIO (evita basura al final)
-        if "FOLIO" in df.columns:
-            df = df[df["FOLIO"].astype(str).str.strip().notna()]
-            df = df[df["FOLIO"].astype(str).str.strip() != ""]
-            df = df[df["FOLIO"].astype(str).str.lower() != "nan"]
+        # ⭐ ELIMINAR FILAS SIN FOLIO SOAPAP
+        if "Folio SOAPAP" in df.columns:
+            df = df[df["Folio SOAPAP"].str.strip().notna()]
+            df = df[df["Folio SOAPAP"].str.strip() != ""]
+            df = df[df["Folio SOAPAP"].str.lower() != "nan"]
 
         preview = df.to_dict(orient="records")
         columnas = df.columns.tolist()
