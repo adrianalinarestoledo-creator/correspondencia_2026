@@ -888,6 +888,187 @@ def dashboard():
         estatus_filtro=estatus_filtro,
         prioridad_filtro=prioridad_filtro
     )
+# ============================
+#   MÓDULO COMPLETO DE USUARIOS
+# ============================
+
+from werkzeug.security import generate_password_hash
+import psycopg2
+
+def requiere_admin():
+    return session.get("rol") in ["admin", "superadmin"]
+
+def requiere_superadmin():
+    return session.get("rol") == "superadmin"
+
+
+# ---------- LISTA DE USUARIOS ----------
+@app.route("/usuarios")
+def usuarios():
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, usuario, nombre_completo, rol, activo, creado_en
+        FROM usuarios
+        ORDER BY id;
+    """)
+    lista_usuarios = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios.html", usuarios=lista_usuarios)
+
+
+# ---------- NUEVO USUARIO ----------
+@app.route("/usuarios/nuevo")
+def usuarios_nuevo():
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    return render_template("usuarios_nuevo.html")
+
+
+# ---------- CREAR USUARIO ----------
+@app.route("/usuarios/crear", methods=["POST"])
+def usuarios_crear():
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    usuario = request.form["usuario"].strip()
+    nombre_completo = request.form["nombre_completo"].strip()
+    password = request.form["password"]
+    rol = request.form["rol"]
+
+    password_hash = generate_password_hash(password)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("""
+            INSERT INTO usuarios (usuario, nombre_completo, password_hash, rol)
+            VALUES (%s, %s, %s, %s);
+        """, (usuario, nombre_completo, password_hash, rol))
+        conn.commit()
+        flash("Usuario creado correctamente", "success")
+    except psycopg2.Error:
+        conn.rollback()
+        flash("Error: el usuario ya existe", "danger")
+    finally:
+        cur.close()
+        conn.close()
+
+    return redirect(url_for("usuarios"))
+
+
+# ---------- EDITAR USUARIO ----------
+@app.route("/usuarios/<int:usuario_id>/editar")
+def usuarios_editar(usuario_id):
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, usuario, nombre_completo, rol, activo
+        FROM usuarios
+        WHERE id = %s;
+    """, (usuario_id,))
+    usuario = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios_editar.html", usuario=usuario)
+
+
+# ---------- ACTUALIZAR USUARIO ----------
+@app.route("/usuarios/<int:usuario_id>/actualizar", methods=["POST"])
+def usuarios_actualizar(usuario_id):
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    nombre_completo = request.form["nombre_completo"].strip()
+    rol = request.form["rol"]
+    activo = True if request.form.get("activo") == "on" else False
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE usuarios
+        SET nombre_completo = %s,
+            rol = %s,
+            activo = %s
+        WHERE id = %s;
+    """, (nombre_completo, rol, activo, usuario_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Usuario actualizado correctamente", "success")
+    return redirect(url_for("usuarios"))
+
+
+# ---------- CAMBIAR CONTRASEÑA ----------
+@app.route("/usuarios/<int:usuario_id>/password")
+def usuarios_password(usuario_id):
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id, usuario, nombre_completo
+        FROM usuarios
+        WHERE id = %s;
+    """, (usuario_id,))
+    usuario = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return render_template("usuarios_password.html", usuario=usuario)
+
+
+# ---------- ACTUALIZAR CONTRASEÑA ----------
+@app.route("/usuarios/<int:usuario_id>/password/actualizar", methods=["POST"])
+def usuarios_password_actualizar(usuario_id):
+    if not requiere_admin():
+        return render_template("bloqueado.html", oficio=None)
+
+    password = request.form["password"]
+    password_hash = generate_password_hash(password)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        UPDATE usuarios
+        SET password_hash = %s
+        WHERE id = %s;
+    """, (password_hash, usuario_id))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Contraseña actualizada correctamente", "success")
+    return redirect(url_for("usuarios"))
+
+
+# ---------- ELIMINAR USUARIO ----------
+@app.route("/usuarios/<int:usuario_id>/eliminar", methods=["POST"])
+def usuarios_eliminar(usuario_id):
+    if not requiere_superadmin():
+        return render_template("bloqueado.html", oficio=None)
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM usuarios WHERE id = %s;", (usuario_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash("Usuario eliminado", "success")
+    return redirect(url_for("usuarios"))
 
 # --------------------------
 #   INICIO DEL SERVIDOR
