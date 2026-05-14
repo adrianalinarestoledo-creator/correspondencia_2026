@@ -37,10 +37,10 @@
         {% endif %}
     </div>
 
-    <!-- ⭐ CAMPOS ADICIONALES -->
-    <div id="campos_extra" style="display:none;">
+    <!-- ⭐ CAMPOS ADICIONALES (DENTRO DE LA FILA) -->
+    <div id="campos_extra" class="row g-3 mt-2" style="display:none;">
 
-        <div class="col-md-12 mt-3">
+        <div class="col-md-12">
             <label class="form-label fw-bold text-secondary">Observaciones</label>
             <textarea name="observaciones" class="form-control">{{ oficio.observaciones or "" }}</textarea>
         </div>
@@ -63,9 +63,8 @@
                    value="{{ oficio.fecha_acuse }}">
         </div>
 
-        <!-- ⭐ DÍAS DE ATENCIÓN (solo lectura) -->
         {% if oficio.dias_atencion %}
-        <div class="col-md-4 mt-3">
+        <div class="col-md-4">
             <label class="form-label fw-bold text-secondary">Días de atención</label>
             <input type="number" class="form-control" value="{{ oficio.dias_atencion }}" readonly>
         </div>
@@ -86,14 +85,8 @@
 
 <script>
 function mostrarCampos() {
-    let estatus = document.getElementById("estatus").value;
     let extra = document.getElementById("campos_extra");
-
-    if (estatus === "En proceso" || estatus === "En acuerdo" || estatus === "Solucionado") {
-        extra.style.display = "block";
-    } else {
-        extra.style.display = "none";
-    }
+    extra.style.display = "block"; // SIEMPRE mostrar
 }
 
 document.addEventListener("DOMContentLoaded", mostrarCampos);
