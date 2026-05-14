@@ -465,44 +465,59 @@ def atender(id):
     return redirect(url_for("lista"))
 
 # --------------------------
-#   RESPONDER OFICIO
+#   RESPONDER OFICIO (FINAL)
 # --------------------------
-
-from datetime import datetime
-
 @app.route("/responder/<int:id>", methods=["GET", "POST"])
 def responder(id):
     oficio = Oficio.query.get_or_404(id)
 
-    # ⭐ BLOQUEAR SI YA ESTÁ SOLUCIONADO Y NO ES ADMIN
-    if oficio.estatus and oficio.estatus.strip().lower() == "solucionado" and session.get("rol") != "admin":
-        return render_template("bloqueado.html", oficio=oficio)
+    rol = session.get("rol")
+    gerencia = session.get("gerencia")
 
+    # ============================
+    # VALIDACIÓN DE PERMISOS
+    # ============================
+
+    # 1. Si NO es admin → validar que la gerencia coincida
+    if rol not in ["admin", "superadmin", "admin_limited"]:
+
+        # Caso especial GAL
+        if gerencia == "GAL":
+            if oficio.gerencia_turnada not in ["GAL", "GAL-Despacho"]:
+                return "Acceso no autorizado", 403
+
+        # Caso general
+        elif oficio.gerencia_turnada != gerencia:
+            return "Acceso no autorizado", 403
+
+        # 2. Si el oficio ya está solucionado → NO permitir editar
+        if oficio.estatus == "Solucionado":
+            return render_template("bloqueado.html", oficio=oficio)
+
+    # ============================
+    # PROCESAR RESPUESTA
+    # ============================
     if request.method == "POST":
+
+        oficio.estatus = request.form.get("estatus")
+        oficio.observaciones = request.form.get("observaciones")
+        oficio.fecha_atencion = request.form.get("fecha_atencion")
         oficio.oficio_respuesta = request.form.get("oficio_respuesta")
         oficio.fecha_acuse = request.form.get("fecha_acuse")
-        oficio.observaciones = request.form.get("observaciones")
 
-        nuevo_estatus = request.form.get("estatus")
-        oficio.estatus = nuevo_estatus
-
-        # ⭐ SI ES SOLUCIONADO → CERRAR OFICIO
-        if nuevo_estatus == "Solucionado":
-
-            # Registrar fecha de atención si no existe
-            if not oficio.fecha_atencion:
-                oficio.fecha_atencion = datetime.now().strftime("%Y-%m-%d")
-
-            # Calcular días de atención
-            if oficio.fecha and oficio.fecha_atencion:
-                try:
-                    f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
-                    f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
-                    oficio.dias_atencion = (f2 - f1).days
-                except:
-                    oficio.dias_atencion = None
+        # ============================
+        # CÁLCULO DE DÍAS DE ATENCIÓN
+        # ============================
+        if oficio.fecha and oficio.fecha_atencion:
+            try:
+                f1 = datetime.strptime(oficio.fecha, "%Y-%m-%d")
+                f2 = datetime.strptime(oficio.fecha_atencion, "%Y-%m-%d")
+                oficio.dias_atencion = (f2 - f1).days
+            except:
+                oficio.dias_atencion = None
 
         db.session.commit()
+        flash("Respuesta guardada correctamente", "success")
         return redirect(url_for("lista"))
 
     return render_template("responder.html", oficio=oficio)
