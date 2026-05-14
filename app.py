@@ -330,71 +330,16 @@ def lista():
     )
 
 # --------------------------
-#   EXPORTAR A EXCEL (CORREGIDO)
+#   EXPORTAR A EXCEL (CON FILTROS)
 # --------------------------
+from sqlalchemy import cast, Date
+import pandas as pd
 
 @app.route("/exportar_excel")
 def exportar_excel():
     if "gerencia" not in session:
         return redirect(url_for("login"))
 
-    # ⭐ Admin ve todo — gerencias ven solo lo suyo
-    if session.get("rol") == "admin":
-        oficios = Oficio.query.order_by(Oficio.id.desc()).all()
-    else:
-        oficios = Oficio.query.filter_by(
-            gerencia_turnada=session["gerencia"]
-        ).order_by(Oficio.id.desc()).all()
-
-    # ⭐ Convertir registros a diccionarios con los nombres EXACTOS del Excel
-    data = []
-    for o in oficios:
-        data.append({
-            "Folio SOAPAP": o.numero,
-            "Número de oficio externo": o.numero_oficio,
-            "Fecha": o.fecha,
-            "Número expediente": o.numero_expediente,
-            "Quien emite": o.quien_emite,
-            "Gerencia": o.gerencia_turnada,
-            "Asunto": o.asunto,
-            "Prioridad": o.prioridad,
-            "Fecha límite": o.fecha_limite,
-            "NIS": o.nis,
-            "Estatus": o.estatus,
-            "Oficio respuesta": o.oficio_respuesta,
-            "Observaciones": o.observaciones
-        })
-
-    # ⭐ Crear DataFrame
-    df = pd.DataFrame(data)
-
-    # ⭐ Exportar a Excel
-    output = BytesIO()
-
-    # Puedes usar XlsxWriter o openpyxl
-    # engine="xlsxwriter"  → si ya lo instalaste
-    # engine="openpyxl"    → si quieres evitar dependencias
-    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
-        df.to_excel(writer, index=False, sheet_name="Oficios")
-
-    output.seek(0)
-
-    return send_file(
-        output,
-        as_attachment=True,
-        download_name="oficios.xlsx",
-        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    )
-# --------------------------
-#   EXPORTAR A PDF (CON FILTROS)
-# --------------------------
-
-@app.route("/exportar_pdf")
-def exportar_pdf():
-    if "gerencia" not in session:
-        return redirect(url_for("login"))
-
-    # ⭐ Obtener filtros igual que en /lista
     q = request.args.get("q", "").strip()
     gerencia_filtro = request.args.get("gerencia", "")
     estatus_filtro = request.args.get("estatus", "")
@@ -403,11 +348,11 @@ def exportar_pdf():
 
     consulta = Oficio.query
 
-    # ⭐ Si NO es admin → solo ve su gerencia
+    # ⭐ Gerencias solo ven lo suyo
     if session.get("rol") not in ["admin", "superadmin"]:
         consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
 
-    # ⭐ Filtro de búsqueda
+    # ⭐ Filtro búsqueda
     if q:
         consulta = consulta.filter(
             (Oficio.asunto.ilike(f"%{q}%")) |
@@ -415,26 +360,110 @@ def exportar_pdf():
             (Oficio.numero_oficio.ilike(f"%{q}%"))
         )
 
-    # ⭐ Filtro por gerencia (solo admin)
+    # ⭐ Filtro gerencia
     if gerencia_filtro and session.get("rol") in ["admin", "superadmin"]:
         consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
 
-    # ⭐ Filtro por estatus
+    # ⭐ Filtro estatus
     if estatus_filtro:
         consulta = consulta.filter_by(estatus=estatus_filtro)
 
-    # ⭐ Filtro por fecha inicial
+    # ⭐ Filtro fecha
     if fecha_ini:
-        consulta = consulta.filter(Oficio.fecha >= fecha_ini)
+        consulta = consulta.filter(cast(Oficio.fecha, Date) >= fecha_ini)
 
-    # ⭐ Filtro por fecha final
     if fecha_fin:
-        consulta = consulta.filter(Oficio.fecha <= fecha_fin)
+        consulta = consulta.filter(cast(Oficio.fecha, Date) <= fecha_fin)
 
-    # ⭐ Ordenar
     consulta = consulta.order_by(Oficio.id.desc())
+    oficios = consulta.all()
 
-    # ⭐ Obtener resultados filtrados
+    # ⭐ Convertir a DataFrame
+    data = [{
+        "Folio SOAPAP": o.numero,
+        "Número de oficio externo": o.numero_oficio,
+        "Fecha": o.fecha,
+        "Hora": o.hora,
+        "Número expediente": o.numero_expediente,
+        "Quien emite": o.quien_emite,
+        "Gerencia": o.gerencia_turnada,
+        "Asunto": o.asunto,
+        "Prioridad": o.prioridad,
+        "Fecha límite": o.fecha_limite,
+        "Responsable Director": o.responsable1,
+        "Responsable Gerente": o.responsable2,
+        "NIS": o.nis,
+        "Estatus": o.estatus,
+        "Fecha atención": o.fecha_atencion,
+        "Días atención": o.dias_atencion,
+        "Oficio respuesta": o.oficio_respuesta,
+        "Fecha acuse": o.fecha_acuse,
+        "Observaciones": o.observaciones
+    } for o in oficios]
+
+    df = pd.DataFrame(data)
+
+    # ⭐ Crear archivo Excel en memoria
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
+        df.to_excel(writer, index=False, sheet_name="Oficios")
+
+    output.seek(0)
+
+    return send_file(
+        output,
+        as_attachment=True,
+        download_name="oficios_filtrados.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+
+# --------------------------
+#   EXPORTAR A PDF (CON FILTROS)
+# --------------------------
+from sqlalchemy import cast, Date
+
+@app.route("/exportar_pdf")
+def exportar_pdf():
+    if "gerencia" not in session:
+        return redirect(url_for("login"))
+
+    q = request.args.get("q", "").strip()
+    gerencia_filtro = request.args.get("gerencia", "")
+    estatus_filtro = request.args.get("estatus", "")
+    fecha_ini = request.args.get("fecha_ini", "")
+    fecha_fin = request.args.get("fecha_fin", "")
+
+    consulta = Oficio.query
+
+    # ⭐ Gerencias solo ven lo suyo
+    if session.get("rol") not in ["admin", "superadmin"]:
+        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
+
+    # ⭐ Filtro búsqueda
+    if q:
+        consulta = consulta.filter(
+            (Oficio.asunto.ilike(f"%{q}%")) |
+            (Oficio.numero.ilike(f"%{q}%")) |
+            (Oficio.numero_oficio.ilike(f"%{q}%"))
+        )
+
+    # ⭐ Filtro gerencia
+    if gerencia_filtro and session.get("rol") in ["admin", "superadmin"]:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+
+    # ⭐ Filtro estatus
+    if estatus_filtro:
+        consulta = consulta.filter_by(estatus=estatus_filtro)
+
+    # ⭐ Filtro fecha (CORRECTO)
+    if fecha_ini:
+        consulta = consulta.filter(cast(Oficio.fecha, Date) >= fecha_ini)
+
+    if fecha_fin:
+        consulta = consulta.filter(cast(Oficio.fecha, Date) <= fecha_fin)
+
+    # ⭐ Ordenar y obtener resultados
+    consulta = consulta.order_by(Oficio.id.desc())
     oficios = consulta.all()
 
     # ⭐ Preparar datos para la plantilla PDF
