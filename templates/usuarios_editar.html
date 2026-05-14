@@ -18,10 +18,23 @@
 
     <div class="mb-3">
         <label class="form-label">Rol</label>
-        <select name="rol" class="form-select" required>
+        <select name="rol" id="rolSelect" class="form-select" required>
             <option value="usuario" {% if usuario.rol == 'usuario' %}selected{% endif %}>Usuario</option>
             <option value="admin" {% if usuario.rol == 'admin' %}selected{% endif %}>Administrador</option>
             <option value="superadmin" {% if usuario.rol == 'superadmin' %}selected{% endif %}>Superadministrador</option>
+        </select>
+    </div>
+
+    <!-- ⭐ Campo de gerencia (solo para usuarios normales) -->
+    <div class="mb-3" id="gerenciaDiv">
+        <label class="form-label">Gerencia</label>
+        <select name="gerencia" class="form-select">
+            <option value="DG" {% if usuario.gerencia == 'DG' %}selected{% endif %}>DG</option>
+            <option value="GAL" {% if usuario.gerencia == 'GAL' %}selected{% endif %}>GAL</option>
+            <option value="GAL-Despacho" {% if usuario.gerencia == 'GAL-Despacho' %}selected{% endif %}>GAL-Despacho</option>
+            <option value="GPSOI" {% if usuario.gerencia == 'GPSOI' %}selected{% endif %}>GPSOI</option>
+            <option value="GSMA" {% if usuario.gerencia == 'GSMA' %}selected{% endif %}>GSMA</option>
+            <option value="GSTS" {% if usuario.gerencia == 'GSTS' %}selected{% endif %}>GSTS</option>
         </select>
     </div>
 
@@ -39,4 +52,21 @@
     </div>
 
 </form>
+
+<script>
+    const rolSelect = document.getElementById("rolSelect");
+    const gerenciaDiv = document.getElementById("gerenciaDiv");
+
+    function actualizarGerencia() {
+        if (rolSelect.value === "usuario") {
+            gerenciaDiv.style.display = "block";
+        } else {
+            gerenciaDiv.style.display = "none";
+        }
+    }
+
+    rolSelect.addEventListener("change", actualizarGerencia);
+    actualizarGerencia();
+</script>
+
 {% endblock %}
