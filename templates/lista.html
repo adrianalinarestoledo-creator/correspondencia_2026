@@ -15,7 +15,7 @@
         <label class="form-label fw-bold text-secondary">Buscar</label>
         <input type="text" name="q" class="form-control filtro-gris"
                placeholder="Folio, NIS o Número de oficio"
-               value="{{ request.args.get('q','') }}">
+               value="{{ q }}">
     </div>
 
     <!-- ⭐ FILTRO POR GERENCIA -->
@@ -23,12 +23,12 @@
         <label class="form-label fw-bold text-secondary">Gerencia</label>
         <select name="gerencia" class="form-select filtro-gris">
             <option value="">Todas</option>
-            <option value="DG">DG</option>
-            <option value="GAL">GAL</option>
-            <option value="GAL-Despacho">GAL-Despacho</option>
-            <option value="GPSOI">GPSOI</option>
-            <option value="GSMA">GSMA</option>
-            <option value="GSTS">GSTS</option>
+            <option value="DG" {% if gerencia_filtro=='DG' %}selected{% endif %}>DG</option>
+            <option value="GAL" {% if gerencia_filtro=='GAL' %}selected{% endif %}>GAL</option>
+            <option value="GAL-Despacho" {% if gerencia_filtro=='GAL-Despacho' %}selected{% endif %}>GAL-Despacho</option>
+            <option value="GPSOI" {% if gerencia_filtro=='GPSOI' %}selected{% endif %}>GPSOI</option>
+            <option value="GSMA" {% if gerencia_filtro=='GSMA' %}selected{% endif %}>GSMA</option>
+            <option value="GSTS" {% if gerencia_filtro=='GSTS' %}selected{% endif %}>GSTS</option>
         </select>
     </div>
 
@@ -37,18 +37,22 @@
         <label class="form-label fw-bold text-secondary">Estatus</label>
         <select name="estatus" class="form-select filtro-gris">
             <option value="">Todos</option>
-            <option value="Pendiente">Pendiente</option>
-            <option value="En proceso">En proceso</option>
-            <option value="En acuerdo">En acuerdo</option>
-            <option value="Solucionado">Solucionado</option>
+            <option value="Pendiente"   {% if estatus_filtro=='Pendiente' %}selected{% endif %}>Pendiente</option>
+            <option value="En proceso"  {% if estatus_filtro=='En proceso' %}selected{% endif %}>En proceso</option>
+            <option value="En acuerdo"  {% if estatus_filtro=='En acuerdo' %}selected{% endif %}>En acuerdo</option>
+            <option value="Solucionado" {% if estatus_filtro=='Solucionado' %}selected{% endif %}>Solucionado</option>
         </select>
     </div>
 
-    <!-- ⭐ FILTRO POR FECHA -->
+    <!-- ⭐ SELECTOR DE REGISTROS POR PÁGINA -->
     <div class="col-md-3">
-        <label class="form-label fw-bold text-secondary">Fecha ingreso</label>
-        <input type="date" name="fecha" class="form-control filtro-gris"
-               value="{{ request.args.get('fecha','') }}">
+        <label class="form-label fw-bold text-secondary">Mostrar</label>
+        <select name="per_page" class="form-select filtro-gris" onchange="this.form.submit()">
+            <option value="10"  {% if per_page == 10 %}selected{% endif %}>10</option>
+            <option value="20"  {% if per_page == 20 %}selected{% endif %}>20</option>
+            <option value="50"  {% if per_page == 50 %}selected{% endif %}>50</option>
+            <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+        </select>
     </div>
 
     <!-- ⭐ BOTONES -->
@@ -136,5 +140,58 @@
         {% endfor %}
     </tbody>
 </table>
+<nav>
+    <ul class="pagination justify-content-center">
+
+        {% if paginacion.has_prev %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('lista',
+                                page=paginacion.prev_num,
+                                per_page=per_page,
+                                q=q,
+                                gerencia=gerencia_filtro,
+                                estatus=estatus_filtro) }}">
+                « Anterior
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in paginacion.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+            {% if num %}
+                <li class="page-item {% if num == paginacion.page %}active{% endif %}">
+                    <a class="page-link"
+                       href="{{ url_for('lista',
+                                        page=num,
+                                        per_page=per_page,
+                                        q=q,
+                                        gerencia=gerencia_filtro,
+                                        estatus=estatus_filtro) }}">
+                        {{ num }}
+                    </a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link">…</span>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if paginacion.has_next %}
+        <li class="page-item">
+            <a class="page-link"
+               href="{{ url_for('lista',
+                                page=paginacion.next_num,
+                                per_page=per_page,
+                                q=q,
+                                gerencia=gerencia_filtro,
+                                estatus=estatus_filtro) }}">
+                Siguiente »
+            </a>
+        </li>
+        {% endif %}
+
+    </ul>
+</nav>
 
 {% endblock %}
