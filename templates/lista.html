@@ -44,6 +44,20 @@
         </select>
     </div>
 
+    <!-- ⭐ FECHA INICIO -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Fecha inicio</label>
+        <input type="date" name="fecha_ini" class="form-control filtro-gris"
+               value="{{ fecha_ini }}">
+    </div>
+
+    <!-- ⭐ FECHA FINAL -->
+    <div class="col-md-3">
+        <label class="form-label fw-bold text-secondary">Fecha final</label>
+        <input type="date" name="fecha_fin" class="form-control filtro-gris"
+               value="{{ fecha_fin }}">
+    </div>
+
     <!-- ⭐ SELECTOR DE REGISTROS POR PÁGINA -->
     <div class="col-md-3">
         <label class="form-label fw-bold text-secondary">Mostrar</label>
@@ -106,20 +120,16 @@
                 {% endif %}
             </td>
 
-            <!-- ⭐ ESTATUS COMPLETO -->
+            <!-- ⭐ ESTATUS -->
             <td>
                 {% if o.estatus == "Pendiente" %}
                     <span class="badge bg-danger">Pendiente</span>
-
                 {% elif o.estatus == "En proceso" %}
                     <span class="badge bg-warning text-dark">En proceso</span>
-
                 {% elif o.estatus == "En acuerdo" %}
                     <span class="badge bg-info text-dark">En acuerdo</span>
-
                 {% elif o.estatus == "Solucionado" %}
                     <span class="badge bg-success">Solucionado</span>
-
                 {% else %}
                     <span class="badge bg-secondary">N/A</span>
                 {% endif %}
@@ -127,30 +137,31 @@
 
             <td>{{ o.observaciones }}</td>
 
-<!-- ⭐ ACCIONES -->
-<td class="d-flex flex-column gap-1">
+            <!-- ⭐ ACCIONES -->
+            <td class="d-flex flex-column gap-1">
 
-    {% if session['rol'] == 'admin' %}
-        <!-- Botón EDITAR solo para ADMIN -->
-        <a href="{{ url_for('editar', id=o.id) }}" class="btn btn-sm btn-warning">
-            ✏️ Editar
-        </a>
-    {% endif %}
+                {% if session['rol'] == 'admin' %}
+                    <a href="{{ url_for('editar', id=o.id) }}" class="btn btn-sm btn-warning">
+                        ✏️ Editar
+                    </a>
+                {% endif %}
 
-    {% if o.estatus == "Solucionado" %}
-        <span class="badge bg-secondary">Finalizado</span>
-    {% else %}
-        <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">
-            Responder
-        </a>
-    {% endif %}
+                {% if o.estatus == "Solucionado" %}
+                    <span class="badge bg-secondary">Finalizado</span>
+                {% else %}
+                    <a href="{{ url_for('responder', id=o.id) }}" class="btn btn-sm btn-primary">
+                        Responder
+                    </a>
+                {% endif %}
 
-</td>
-       
+            </td>
+
         </tr>
         {% endfor %}
     </tbody>
 </table>
+
+<!-- ⭐ PAGINACIÓN -->
 <nav>
     <ul class="pagination justify-content-center">
 
@@ -162,7 +173,9 @@
                                 per_page=per_page,
                                 q=q,
                                 gerencia=gerencia_filtro,
-                                estatus=estatus_filtro) }}">
+                                estatus=estatus_filtro,
+                                fecha_ini=fecha_ini,
+                                fecha_fin=fecha_fin) }}">
                 « Anterior
             </a>
         </li>
@@ -177,7 +190,9 @@
                                         per_page=per_page,
                                         q=q,
                                         gerencia=gerencia_filtro,
-                                        estatus=estatus_filtro) }}">
+                                        estatus=estatus_filtro,
+                                        fecha_ini=fecha_ini,
+                                        fecha_fin=fecha_fin) }}">
                         {{ num }}
                     </a>
                 </li>
@@ -196,7 +211,9 @@
                                 per_page=per_page,
                                 q=q,
                                 gerencia=gerencia_filtro,
-                                estatus=estatus_filtro) }}">
+                                estatus=estatus_filtro,
+                                fecha_ini=fecha_ini,
+                                fecha_fin=fecha_fin) }}">
                 Siguiente »
             </a>
         </li>
