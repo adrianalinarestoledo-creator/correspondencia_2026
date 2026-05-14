@@ -728,31 +728,82 @@ def importar_excel_guardar():
     return jsonify({"mensaje": "Importación completada"})
 
 # --------------------------
-#   DASHBOARD COMPLETO
+#   DASHBOARD INSTITUCIONAL (CON FILTROS)
 # --------------------------
+from sqlalchemy import func, cast, Date
 
 @app.route("/dashboard")
 def dashboard():
-    # Permitir acceso solo si hay sesión
-    if "rol" not in session:
-        return redirect("/")
 
-    # Admin ve todo, gerencias solo lo suyo
-    if session.get("rol") == "admin":
-        oficios = Oficio.query.all()
-    else:
-        oficios = Oficio.query.filter_by(gerencia_turnada=session["gerencia"]).all()
+    # ============================
+    # FILTROS
+    # ============================
+    anio = request.args.get("anio", session.get("anio"))
+    mes = request.args.get("mes", "")
+    gerencia_filtro = request.args.get("gerencia", "")
+    estatus_filtro = request.args.get("estatus", "")
+    prioridad_filtro = request.args.get("prioridad", "")
+
+    consulta = Oficio.query
+
+    # ============================
+    # FILTRO POR ROL
+    # ============================
+    if session.get("rol") not in ["admin", "superadmin"]:
+        consulta = consulta.filter_by(gerencia_turnada=session["gerencia"])
+
+    # ============================
+    # FILTRO POR AÑO
+    # ============================
+    if anio:
+        consulta = consulta.filter(func.substr(Oficio.fecha, 1, 4) == str(anio))
+
+    # ============================
+    # FILTRO POR MES
+    # ============================
+    if mes:
+        consulta = consulta.filter(func.substr(Oficio.fecha, 6, 2) == mes)
+
+    # ============================
+    # FILTRO POR GERENCIA
+    # ============================
+    if gerencia_filtro:
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_filtro)
+
+    # ============================
+    # FILTRO POR ESTATUS
+    # ============================
+    if estatus_filtro:
+        consulta = consulta.filter_by(estatus=estatus_filtro)
+
+    # ============================
+    # FILTRO POR PRIORIDAD
+    # ============================
+    if prioridad_filtro:
+        consulta = consulta.filter_by(prioridad=prioridad_filtro)
+
+    # ============================
+    # OBTENER OFICIOS FILTRADOS
+    # ============================
+    oficios = consulta.all()
 
     # ============================
     # KPIs GENERALES
     # ============================
     total_recibidos = len(oficios)
-    total_atendidos = len([o for o in oficios if o.estatus == "Solucionado"])
-    total_pendientes = total_recibidos - total_atendidos
+    total_pendientes = sum(1 for o in oficios if o.estatus == "Pendiente")
+    total_proceso = sum(1 for o in oficios if o.estatus == "En proceso")
+    total_acuerdo = sum(1 for o in oficios if o.estatus == "En acuerdo")
+    total_atendidos = sum(1 for o in oficios if o.estatus == "Solucionado")
 
-    porcentaje_cumplimiento = 0
-    if total_recibidos > 0:
-        porcentaje_cumplimiento = round((total_atendidos / total_recibidos) * 100, 2)
+    porcentaje_cumplimiento = (
+        round((total_atendidos / total_recibidos) * 100, 2)
+        if total_recibidos > 0 else 0
+    )
+
+    # Tiempo promedio de atención
+    dias = [o.dias_atencion for o in oficios if o.dias_atencion]
+    promedio_dias = round(sum(dias) / len(dias), 2) if dias else 0
 
     # ============================
     # TABLA POR GERENCIA
@@ -763,27 +814,24 @@ def dashboard():
     for g in gerencias:
         recibidos = len([o for o in oficios if o.gerencia_turnada == g])
         atendidos = len([o for o in oficios if o.gerencia_turnada == g and o.estatus == "Solucionado"])
-        pendientes = recibidos - atendidos
+        pendientes = len([o for o in oficios if o.gerencia_turnada == g and o.estatus == "Pendiente"])
+        proceso = len([o for o in oficios if o.gerencia_turnada == g and o.estatus == "En proceso"])
+        acuerdo = len([o for o in oficios if o.gerencia_turnada == g and o.estatus == "En acuerdo"])
 
-        cumplimiento = 0
-        if recibidos > 0:
-            cumplimiento = round((atendidos / recibidos) * 100, 2)
+        cumplimiento = round((atendidos / recibidos) * 100, 2) if recibidos > 0 else 0
 
-        # Promedio de días (solo atendidos)
-        dias = []
-        for o in oficios:
-            if o.gerencia_turnada == g and o.estatus == "Solucionado" and o.dias_atencion:
-                dias.append(o.dias_atencion)
-
-        promedio_dias = round(sum(dias) / len(dias), 2) if dias else 0
+        dias_g = [o.dias_atencion for o in oficios if o.gerencia_turnada == g and o.dias_atencion]
+        promedio_dias_g = round(sum(dias_g) / len(dias_g), 2) if dias_g else 0
 
         tabla_gerencias.append({
             "gerencia": g,
             "recibidos": recibidos,
-            "atendidos": atendidos,
             "pendientes": pendientes,
+            "proceso": proceso,
+            "acuerdo": acuerdo,
+            "atendidos": atendidos,
             "cumplimiento": cumplimiento,
-            "promedio_dias": promedio_dias
+            "promedio_dias": promedio_dias_g
         })
 
     # ============================
@@ -801,21 +849,30 @@ def dashboard():
         recibidos_mes.append(len(oficios_mes))
         atendidos_mes.append(len([o for o in oficios_mes if o.estatus == "Solucionado"]))
 
-        dias = [o.dias_atencion for o in oficios_mes if o.estatus == "Solucionado" and o.dias_atencion]
-        dias_promedio.append(round(sum(dias) / len(dias), 2) if dias else 0)
+        dias_m = [o.dias_atencion for o in oficios_mes if o.estatus == "Solucionado" and o.dias_atencion]
+        dias_promedio.append(round(sum(dias_m) / len(dias_m), 2) if dias_m else 0)
 
     return render_template(
         "dashboard.html",
         total_recibidos=total_recibidos,
-        total_atendidos=total_atendidos,
         total_pendientes=total_pendientes,
+        total_proceso=total_proceso,
+        total_acuerdo=total_acuerdo,
+        total_atendidos=total_atendidos,
         porcentaje_cumplimiento=porcentaje_cumplimiento,
+        promedio_dias=promedio_dias,
         tabla_gerencias=tabla_gerencias,
         meses=meses,
         recibidos_mes=recibidos_mes,
         atendidos_mes=atendidos_mes,
-        dias_promedio=dias_promedio
+        dias_promedio=dias_promedio,
+        anio=anio,
+        mes=mes,
+        gerencia_filtro=gerencia_filtro,
+        estatus_filtro=estatus_filtro,
+        prioridad_filtro=prioridad_filtro
     )
+
 
 # --------------------------
 #   INICIO DEL SERVIDOR
