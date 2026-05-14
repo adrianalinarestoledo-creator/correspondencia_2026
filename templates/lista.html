@@ -76,21 +76,29 @@
 
     <a href="{{ url_for('lista') }}" class="btn btn-secondary">Limpiar</a>
 
-    <!-- ⭐ EXPORTAR PDF CON FILTROS ACTIVOS -->
-   <a class="btn btn-danger"
-   href="{{ url_for('exportar_pdf',
-                    q=q,
-                    gerencia=gerencia_filtro,
-                    estatus=estatus_filtro,
-                    fecha_ini=fecha_ini,
-                    fecha_fin=fecha_fin,
-                    per_page=per_page) }}">
-    Exportar PDF
-</a>
+    <!-- ⭐ EXPORTAR PDF -->
+    <a class="btn btn-danger"
+       href="{{ url_for('exportar_pdf',
+                        q=q,
+                        gerencia=gerencia_filtro,
+                        estatus=estatus_filtro,
+                        fecha_ini=fecha_ini,
+                        fecha_fin=fecha_fin) }}">
+        PDF
+    </a>
 
+    <!-- ⭐ EXPORTAR EXCEL -->
+    <a class="btn btn-success"
+       href="{{ url_for('exportar_excel',
+                        q=q,
+                        gerencia=gerencia_filtro,
+                        estatus=estatus_filtro,
+                        fecha_ini=fecha_ini,
+                        fecha_fin=fecha_fin) }}">
+        Excel
+    </a>
 
 </div>
-
 
 </form>
 
