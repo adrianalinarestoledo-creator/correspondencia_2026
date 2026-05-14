@@ -737,9 +737,9 @@ def importar_excel_guardar():
 
     return jsonify({"mensaje": "Importación completada"})
     
-# --------------------------
+# ============================
 #   DASHBOARD INSTITUCIONAL (CON FILTRO MENSUAL + MULTI GERENCIA)
-# --------------------------
+# ============================
 from sqlalchemy import func
 
 @app.route("/dashboard")
@@ -757,17 +757,16 @@ def dashboard():
     consulta = Oficio.query
 
     # ============================
-# FILTRO POR ROL
-# ============================
-rol = session.get("rol")
-gerencia_usuario = session.get("gerencia")
+    # FILTRO POR ROL
+    # ============================
+    rol = session.get("rol")
+    gerencia_usuario = session.get("gerencia")
 
-# GERENCIAS → solo lo suyo
-if rol not in ["admin", "superadmin"]:
-    if not gerencia_usuario:
-        return redirect(url_for("login"))  # Sesión inválida o incompleta
-    consulta = consulta.filter_by(gerencia_turnada=gerencia_usuario)
-
+    # GERENCIAS → solo lo suyo
+    if rol not in ["admin", "superadmin"]:
+        if not gerencia_usuario:
+            return redirect(url_for("login"))  # Sesión inválida o incompleta
+        consulta = consulta.filter_by(gerencia_turnada=gerencia_usuario)
 
     # ============================
     # FILTRO POR AÑO
