@@ -1,78 +1,41 @@
 {% extends "base.html" %}
 
-{% block menu %}
-    {% include "menu.html" %}
-{% endblock %}
-
 {% block contenido %}
-<h2 class="mb-3">Editar usuario</h2>
+<h3 class="mb-3">✏️ Editar usuario</h3>
 
-<form method="POST">
+<form action="{{ url_for('usuarios_actualizar', usuario_id=usuario[0]) }}" method="POST">
 
     <div class="mb-3">
-        <label>Usuario</label>
-        <input type="text" value="{{ usuario.usuario }}" class="form-control" disabled>
+        <label class="form-label">Usuario</label>
+        <input type="text" class="form-control" value="{{ usuario[1] }}" disabled>
     </div>
 
     <div class="mb-3">
-        <label>Nueva contraseña (opcional)</label>
-        <input type="password" name="password" class="form-control">
-        <p id="msgPwd" class="mt-2"></p>
+        <label class="form-label">Nombre completo</label>
+        <input type="text" name="nombre_completo" class="form-control" value="{{ usuario[2] }}" required>
     </div>
 
     <div class="mb-3">
-        <label>Rol</label>
-        <select name="rol" class="form-control">
-            <option value="admin" {% if usuario.rol=='admin' %}selected{% endif %}>Admin</option>
-            <option value="gerencia" {% if usuario.rol=='gerencia' %}selected{% endif %}>Gerencia</option>
+        <label class="form-label">Rol</label>
+        <select name="rol" class="form-select" required>
+            <option value="usuario" {% if usuario[3] == 'usuario' %}selected{% endif %}>Usuario</option>
+            <option value="admin" {% if usuario[3] == 'admin' %}selected{% endif %}>Admin</option>
+            <option value="superadmin" {% if usuario[3] == 'superadmin' %}selected{% endif %}>Superadmin</option>
         </select>
     </div>
 
-    <div class="mb-3">
-        <label>Activo</label>
-        <input type="checkbox" name="activo" {% if usuario.activo %}checked{% endif %}>
+    <div class="form-check mb-3">
+        <input class="form-check-input" type="checkbox" name="activo" id="activoCheck"
+               {% if usuario[4] %}checked{% endif %}>
+        <label class="form-check-label" for="activoCheck">
+            Usuario activo
+        </label>
     </div>
 
-    <button class="btn btn-primary">Guardar cambios</button>
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-success">Guardar</button>
+        <a href="{{ url_for('usuarios') }}" class="btn btn-secondary">Cancelar</a>
+    </div>
+
 </form>
-
-<script>
-function validarPassword() {
-    const pwd = document.querySelector("input[name='password']");
-    const btn = document.querySelector("button[type='submit']");
-    const msg = document.getElementById("msgPwd");
-
-    if (!pwd.value.trim()) {
-        msg.innerHTML = "";
-        btn.disabled = false;
-        return;
-    }
-
-    const reglas = [
-        /.{8,}/,
-        /[A-Z]/,
-        /[a-z]/,
-        /[0-9]/,
-        /[^A-Za-z0-9]/
-    ];
-
-    let ok = reglas.every(r => r.test(pwd.value));
-
-    if (!ok) {
-        msg.innerHTML = "La contraseña debe tener: mínimo 8 caracteres, mayúscula, minúscula, número y símbolo.";
-        msg.style.color = "red";
-        btn.disabled = true;
-    } else {
-        msg.innerHTML = "Contraseña segura ✔";
-        msg.style.color = "green";
-        btn.disabled = false;
-    }
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-    const pwd = document.querySelector("input[name='password']");
-    if (pwd) pwd.addEventListener("input", validarPassword);
-});
-</script>
 {% endblock %}
-
