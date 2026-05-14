@@ -465,7 +465,7 @@ def responder(id):
     return render_template("responder.html", oficio=oficio)
 
 # --------------------------
-#   IMPORTAR EXCEL (SUBIR Y VISTA PREVIA)
+#   IMPORTAR EXCEL (SUBIR Y VISTA PREVIA) - CORREGIDA
 # --------------------------
 
 @app.route("/importar_excel", methods=["GET", "POST"])
@@ -473,19 +473,19 @@ def importar_excel():
     if request.method == "POST":
         archivo = request.files["archivo"]
 
-        # ⭐ Tu Excel tiene encabezados en la fila 1 → header=0
+        # ✅ Encabezados reales están en la primera fila → header=0
         df = pd.read_excel(archivo, header=0)
 
-        # ⭐ LIMPIAR ENCABEZADOS
+        # ✅ Limpiar espacios en los nombres de columnas
         df.columns = df.columns.str.strip()
 
-        # ⭐ ELIMINAR FILAS TOTALMENTE VACÍAS
+        # ✅ Eliminar filas totalmente vacías
         df = df.dropna(how="all")
 
-        # ⭐ Convertir todo a string
+        # ✅ Convertir todo a string para evitar problemas al serializar a JSON
         df = df.astype(str)
 
-        # ⭐ ELIMINAR FILAS SIN FOLIO SOAPAP
+        # ✅ Eliminar filas sin Folio SOAPAP (evita basura al final)
         if "Folio SOAPAP" in df.columns:
             df = df[df["Folio SOAPAP"].str.strip().notna()]
             df = df[df["Folio SOAPAP"].str.strip() != ""]
