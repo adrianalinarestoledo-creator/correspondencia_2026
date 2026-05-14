@@ -640,7 +640,7 @@ def importar_excel_guardar():
 
 @app.route("/dashboard")
 def dashboard():
-    if "rol" not in session:
+  if "rol" not in session:
     return redirect(url_for("login"))
 
     # Admin ve todo, gerencias solo lo suyo
