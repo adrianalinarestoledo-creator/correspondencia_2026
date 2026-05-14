@@ -629,8 +629,7 @@ def importar_excel_guardar():
         )
 
         db.session.add(nuevo)
-
-    db.session.commit()
+        db.session.commit()
 
     return jsonify({"mensaje": "Importación completada"})
 
