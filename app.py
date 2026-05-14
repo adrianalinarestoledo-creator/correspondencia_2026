@@ -641,7 +641,7 @@ def importar_excel_guardar():
 def dashboard():
     # Permitir acceso solo si hay sesión
     if "rol" not in session:
-    return redirect("/")
+        return redirect("/")
 
     # Admin ve todo, gerencias solo lo suyo
     if session.get("rol") == "admin":
