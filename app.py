@@ -238,6 +238,32 @@ def nuevo():
         db.session.commit()
 
         return redirect(url_for("lista"))
+# --------------------------
+#   EDITAR OFICIO (SOLO ADMIN)
+# --------------------------
+
+@app.route("/editar/<int:id>", methods=["GET", "POST"])
+def editar(id):
+    if "rol" not in session or session["rol"] != "admin":
+        return "No tienes permiso para modificar este oficio"
+
+    oficio = Oficio.query.get_or_404(id)
+
+    # GET → mostrar formulario
+    if request.method == "GET":
+        return render_template("editar.html", oficio=oficio)
+
+    # POST → guardar cambios
+    if request.method == "POST":
+        oficio.estatus = request.form["estatus"]
+        oficio.gerencia_turnada = request.form["gerencia_turnada"]
+        oficio.responsable1 = request.form["responsable1"]
+        oficio.responsable2 = request.form["responsable2"]
+        oficio.asunto = request.form["asunto"]
+        oficio.nis = request.form["nis"]
+
+        db.session.commit()
+        return redirect(url_for("lista"))
 
 # --------------------------
 #   LISTA DE OFICIOS
