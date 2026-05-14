@@ -121,11 +121,18 @@ def login():
         user = Usuario.query.filter_by(usuario=usuario).first()
 
         if user and user.password_hash and check_password_hash(user.password_hash, password):
+
+            # Datos base de sesión
             session["usuario"] = user.usuario
             session["rol"] = user.rol
-            session["gerencia"] = user.gerencia
 
-            # ⭐ Guardar año actual para el menú
+            # Asignar gerencia solo a usuarios de gerencia
+            if user.rol not in ["admin", "superadmin"]:
+                session["gerencia"] = user.gerencia
+            else:
+                session["gerencia"] = None
+
+            # Año actual para el menú
             session["anio"] = datetime.now().year
 
             return redirect(url_for("lista"))
@@ -750,16 +757,17 @@ def dashboard():
     consulta = Oficio.query
 
     # ============================
-    # FILTRO POR ROL
-    # ============================
-    rol = session.get("rol")
-    gerencia_usuario = session.get("gerencia")
+# FILTRO POR ROL
+# ============================
+rol = session.get("rol")
+gerencia_usuario = session.get("gerencia")
 
-    # GERENCIAS → solo lo suyo
-    if rol not in ["admin", "superadmin"]:
-        if not gerencia_usuario:
+# GERENCIAS → solo lo suyo
+if rol not in ["admin", "superadmin"]:
+    if not gerencia_usuario:
         return redirect(url_for("login"))  # Sesión inválida o incompleta
-        consulta = consulta.filter_by(gerencia_turnada=gerencia_usuario)
+    consulta = consulta.filter_by(gerencia_turnada=gerencia_usuario)
+
 
     # ============================
     # FILTRO POR AÑO
