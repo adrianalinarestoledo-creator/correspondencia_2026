@@ -271,7 +271,6 @@ def editar(id):
 
         db.session.commit()
         return redirect(url_for("lista"))
-
 # --------------------------
 #   LISTA DE OFICIOS (FINAL)
 # --------------------------
@@ -290,23 +289,23 @@ def lista():
     consulta = Oficio.query
 
     # ⭐ Si NO es admin ni superadmin → aplicar reglas por gerencia
-if session.get("rol") not in ["admin", "superadmin"]:
-    ger = session.get("gerencia")
+    if session.get("rol") not in ["admin", "superadmin"]:
+        ger = session.get("gerencia")
 
-    # GAL ve GAL y GAL-Despacho
-    if ger == "GAL":
-        consulta = consulta.filter(
-            (Oficio.gerencia_turnada == "GAL") |
-            (Oficio.gerencia_turnada == "GAL-Despacho")
-        )
+        # GAL ve GAL y GAL-Despacho
+        if ger == "GAL":
+            consulta = consulta.filter(
+                (Oficio.gerencia_turnada == "GAL") |
+                (Oficio.gerencia_turnada == "GAL-Despacho")
+            )
 
-    # GAL-Despacho solo ve lo suyo
-    elif ger == "GAL-Despacho":
-        consulta = consulta.filter_by(gerencia_turnada="GAL-Despacho")
+        # GAL-Despacho solo ve lo suyo
+        elif ger == "GAL-Despacho":
+            consulta = consulta.filter_by(gerencia_turnada="GAL-Despacho")
 
-    # Las demás gerencias solo ven lo suyo
-    else:
-        consulta = consulta.filter_by(gerencia_turnada=ger)
+        # Las demás gerencias solo ven lo suyo
+        else:
+            consulta = consulta.filter_by(gerencia_turnada=ger)
 
     # ⭐ Filtro de búsqueda general
     if q:
